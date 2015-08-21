@@ -52,14 +52,42 @@ BEGIN_RCPP
 END_RCPP
 }
 // calcPairwiseDist
-NumericMatrix calcPairwiseDist(NumericVector x, NumericVector y);
-RcppExport SEXP sgsR_calcPairwiseDist(SEXP xSEXP, SEXP ySEXP) {
+NumericMatrix calcPairwiseDist(NumericVector x, NumericVector y, int Nind);
+RcppExport SEXP sgsR_calcPairwiseDist(SEXP xSEXP, SEXP ySEXP, SEXP NindSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
-    __result = Rcpp::wrap(calcPairwiseDist(x, y));
+    Rcpp::traits::input_parameter< int >::type Nind(NindSEXP);
+    __result = Rcpp::wrap(calcPairwiseDist(x, y, Nind));
+    return __result;
+END_RCPP
+}
+// findDIs
+NumericMatrix findDIs(NumericMatrix Mdij, NumericVector DistInts, int Nind);
+RcppExport SEXP sgsR_findDIs(SEXP MdijSEXP, SEXP DistIntsSEXP, SEXP NindSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< NumericMatrix >::type Mdij(MdijSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type DistInts(DistIntsSEXP);
+    Rcpp::traits::input_parameter< int >::type Nind(NindSEXP);
+    __result = Rcpp::wrap(findDIs(Mdij, DistInts, Nind));
+    return __result;
+END_RCPP
+}
+// summarizeDIs
+NumericMatrix summarizeDIs(NumericMatrix Mdij, NumericMatrix Mcij, NumericVector DistInts, int Nind);
+RcppExport SEXP sgsR_summarizeDIs(SEXP MdijSEXP, SEXP McijSEXP, SEXP DistIntsSEXP, SEXP NindSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< NumericMatrix >::type Mdij(MdijSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Mcij(McijSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type DistInts(DistIntsSEXP);
+    Rcpp::traits::input_parameter< int >::type Nind(NindSEXP);
+    __result = Rcpp::wrap(summarizeDIs(Mdij, Mcij, DistInts, Nind));
     return __result;
 END_RCPP
 }

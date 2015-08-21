@@ -13,7 +13,15 @@ calcAlleleFreqPop <- function(alleles_1, alleles_2, Nallele) {
     .Call('sgsR_calcAlleleFreqPop', PACKAGE = 'sgsR', alleles_1, alleles_2, Nallele)
 }
 
-calcPairwiseDist <- function(x, y) {
-    .Call('sgsR_calcPairwiseDist', PACKAGE = 'sgsR', x, y)
+calcPairwiseDist <- function(x, y, Nind) {
+    .Call('sgsR_calcPairwiseDist', PACKAGE = 'sgsR', x, y, Nind)
+}
+
+findDIs <- function(Mdij, DistInts, Nind) {
+    .Call('sgsR_findDIs', PACKAGE = 'sgsR', Mdij, DistInts, Nind)
+}
+
+summarizeDIs <- function(Mdij, Mcij, DistInts, Nind) {
+    .Call('sgsR_summarizeDIs', PACKAGE = 'sgsR', Mdij, Mcij, DistInts, Nind)
 }
 
