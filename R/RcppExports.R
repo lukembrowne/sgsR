@@ -5,8 +5,8 @@ calcFijPairwiseCpp <- function(ref_gen, alfreq1, alfreq2, Nloci, Nallele, n) {
     .Call('sgsR_calcFijPairwiseCpp', PACKAGE = 'sgsR', ref_gen, alfreq1, alfreq2, Nloci, Nallele, n)
 }
 
-calcFijPopCpp <- function(ids, genotype_data, ref_gen, Nloci, Nallele, Nind, Ngenecopies) {
-    .Call('sgsR_calcFijPopCpp', PACKAGE = 'sgsR', ids, genotype_data, ref_gen, Nloci, Nallele, Nind, Ngenecopies)
+calcFijPopCpp <- function(ids, Mcij, distance_intervals, genotype_data, ref_gen, Nloci, Nallele, Nind, Ngenecopies) {
+    .Call('sgsR_calcFijPopCpp', PACKAGE = 'sgsR', ids, Mcij, distance_intervals, genotype_data, ref_gen, Nloci, Nallele, Nind, Ngenecopies)
 }
 
 calcAlleleFreqPop <- function(alleles_1, alleles_2, Nallele) {

@@ -6,7 +6,7 @@
 using namespace Rcpp;
 
 // calcFijPairwiseCpp
-float calcFijPairwiseCpp(NumericMatrix ref_gen, NumericMatrix alfreq1, NumericMatrix alfreq2, int Nloci, int Nallele, int n);
+std::vector<float> calcFijPairwiseCpp(NumericMatrix ref_gen, NumericMatrix alfreq1, NumericMatrix alfreq2, int Nloci, int Nallele, int n);
 RcppExport SEXP sgsR_calcFijPairwiseCpp(SEXP ref_genSEXP, SEXP alfreq1SEXP, SEXP alfreq2SEXP, SEXP NlociSEXP, SEXP NalleleSEXP, SEXP nSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
@@ -22,19 +22,21 @@ BEGIN_RCPP
 END_RCPP
 }
 // calcFijPopCpp
-NumericMatrix calcFijPopCpp(NumericVector ids, NumericMatrix genotype_data, NumericMatrix ref_gen, int Nloci, int Nallele, int Nind, int Ngenecopies);
-RcppExport SEXP sgsR_calcFijPopCpp(SEXP idsSEXP, SEXP genotype_dataSEXP, SEXP ref_genSEXP, SEXP NlociSEXP, SEXP NalleleSEXP, SEXP NindSEXP, SEXP NgenecopiesSEXP) {
+NumericMatrix calcFijPopCpp(NumericVector ids, NumericMatrix Mcij, NumericVector distance_intervals, NumericMatrix genotype_data, NumericMatrix ref_gen, int Nloci, int Nallele, int Nind, int Ngenecopies);
+RcppExport SEXP sgsR_calcFijPopCpp(SEXP idsSEXP, SEXP McijSEXP, SEXP distance_intervalsSEXP, SEXP genotype_dataSEXP, SEXP ref_genSEXP, SEXP NlociSEXP, SEXP NalleleSEXP, SEXP NindSEXP, SEXP NgenecopiesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< NumericVector >::type ids(idsSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Mcij(McijSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type distance_intervals(distance_intervalsSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type genotype_data(genotype_dataSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type ref_gen(ref_genSEXP);
     Rcpp::traits::input_parameter< int >::type Nloci(NlociSEXP);
     Rcpp::traits::input_parameter< int >::type Nallele(NalleleSEXP);
     Rcpp::traits::input_parameter< int >::type Nind(NindSEXP);
     Rcpp::traits::input_parameter< int >::type Ngenecopies(NgenecopiesSEXP);
-    __result = Rcpp::wrap(calcFijPopCpp(ids, genotype_data, ref_gen, Nloci, Nallele, Nind, Ngenecopies));
+    __result = Rcpp::wrap(calcFijPopCpp(ids, Mcij, distance_intervals, genotype_data, ref_gen, Nloci, Nallele, Nind, Ngenecopies));
     return __result;
 END_RCPP
 }

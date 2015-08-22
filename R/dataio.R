@@ -11,6 +11,8 @@
 
 ## Set it up to be able to deal with varying number of alleles per locus
 
+## clean up loci names part
+
 createSgsObj <- function(sample_ids,
                         groups = NULL,
                         genotype_data,
@@ -26,8 +28,9 @@ createSgsObj <- function(sample_ids,
   df$ids = sample_ids
   df$groups <- groups
 
-  # Set genetic data
+  # Set genetic data and loci names
   df$gen_data <- genotype_data
+  df$loci_names <- colnames(genotype_data)[seq(1, Nloci*2, 2)]
 
   # Set spatial coordinates
   df$x <- x_coords

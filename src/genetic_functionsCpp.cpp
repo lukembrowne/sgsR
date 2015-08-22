@@ -3,7 +3,7 @@ using namespace Rcpp;
 
 
 // Declare functions
-float calcFijPairwiseCpp(NumericMatrix ref_gen,
+std::vector<float> calcFijPairwiseCpp(NumericMatrix ref_gen,
                          NumericMatrix alfreq1,
                          NumericMatrix alfreq2,
                          int Nloci, int Nallele,
@@ -27,32 +27,39 @@ std::vector<float> calcAlleleFreqCppInd(int alleles_1,
 // ***************************************************
 
 // [[Rcpp::export]]
-float calcFijPairwiseCpp(NumericMatrix ref_gen,
+std::vector<float> calcFijPairwiseCpp(NumericMatrix ref_gen,
                          NumericMatrix alfreq1,
                          NumericMatrix alfreq2,
                          int Nloci, int Nallele,
                          int n){
 
-  float denom = 0;
-  float numer = 0;
-  float fij;
+  float denom[Nloci];
+  float numer[Nloci];
+  std::vector<float> fij(Nloci);
+
+  // Initialize numerator and denominator
+  for(int locus = 0 ; locus < Nloci; ++locus){
+    denom[locus] = 0;
+    numer[locus] = 0;
+  }
 
   for(int locus = 0;  locus < Nloci; ++locus){ // Loop through loci
 
     for(int allele = 0; allele < Nallele; ++allele){ // Loop through alleles
 
-      numer  +=  (alfreq1(locus, allele) - ref_gen(locus, allele))
-      *  (alfreq2(locus, allele) -
-        ref_gen(locus, allele)) +
+      // Calculate Numerator and Denominator of Loiselle et al. 1995
+      numer[locus]  +=  (alfreq1(locus, allele) - ref_gen(locus, allele)) *
+                        (alfreq2(locus, allele) - ref_gen(locus, allele)) +
         (ref_gen(locus, allele)*(1 - ref_gen(locus, allele))) / (n - 1);
 
 
-      denom += ref_gen(locus, allele) * (1 - ref_gen(locus, allele));
+      denom[locus] += ref_gen(locus, allele) * (1 - ref_gen(locus, allele));
 
-    }
-  }
+    } // End allele loop
 
-  fij = numer / denom;
+    fij[locus] = numer[locus] / denom[locus]; // Calculate Fij per locus
+
+  } // End loci loop
 
   return(fij);
 }
@@ -67,6 +74,8 @@ float calcFijPairwiseCpp(NumericMatrix ref_gen,
 
 // [[Rcpp::export]]
 NumericMatrix calcFijPopCpp(NumericVector ids,
+                            NumericMatrix Mcij,
+                            NumericVector distance_intervals,
                             NumericMatrix genotype_data,
                             NumericMatrix ref_gen,
                             int Nloci,
@@ -76,19 +85,26 @@ NumericMatrix calcFijPopCpp(NumericVector ids,
 
   // Initalize a 3d array that will save allele frequency for each individual
   float ind_al_freq[Nloci][Nallele][Nind];
+  int ndis = distance_intervals.size(); // Number of distance intervals
   int row = 0; // Needed for loop through 3d array
-  NumericMatrix fij(Nind, Nind);
+  std::vector<float> fij(Nloci);
   NumericMatrix  alfreq1(Nloci, Nallele);
   NumericMatrix  alfreq2(Nloci, Nallele);
-  int id1;
-  int id2;
+  NumericMatrix fijsummary(Nloci + 1, ndis); // Stores summary information of pairwise Fij
+  NumericMatrix npairs(Nloci + 1, ndis); // Stores number of comparisons
+
+
+  // Initialize matrices
+  for(int locus = 0; locus < (Nloci + 1); locus++) for(int di = 0; di < ndis; di++){
+    fijsummary(locus, di) = 0;
+    npairs(locus, di) = 0;
+  }
 
 
   // Loop through individuals and calculate allele frequency
   for(int indi = 0; indi < Nind; ++indi){
 
     row = 0; // Row of individual allele frequency 3d array - corresponds to locus
-
     for(int locus = 0; locus < (Nloci * 2); locus += 2){ // Loop through loci
 
       std::vector<float> freq_table = calcAlleleFreqCppInd(genotype_data(indi, locus),
@@ -105,7 +121,6 @@ NumericMatrix calcFijPopCpp(NumericVector ids,
       // Have to then loop through allele frequency table to fill in individual part
       // of the array
       int allele = 0;
-
       for (std::vector<float>::iterator i = freq_table.begin(); i != freq_table.end(); ++i){
 
         ind_al_freq[row][allele][indi] = *i;
@@ -113,7 +128,6 @@ NumericMatrix calcFijPopCpp(NumericVector ids,
       } // End allele loop
 
       row += 1; // Jump to next row in array, which is the next locus
-
 
     } // End loci loop
   } // End individuals loop
@@ -131,18 +145,34 @@ NumericMatrix calcFijPopCpp(NumericVector ids,
       }
     }
 
-
-
-    fij(i, j) =   calcFijPairwiseCpp(ref_gen,
+    // Should return an array / vector with Fij estimate for each locus
+    fij  =   calcFijPairwiseCpp(ref_gen,
                                      alfreq1,
                                      alfreq2,
                                      Nloci, Nallele, Ngenecopies);
 
+    // Save per locus Fij estimate
+    int locus = 0; // Initialize before loop
+    for (std::vector<float>::iterator k = fij.begin(); k != fij.end(); ++k){
+
+      fijsummary(locus, Mcij(i, j)) += *k;
+      fijsummary(Nloci, Mcij(i, j)) += *k; // Save sum across all loci in last row
+
+      npairs(locus, Mcij(i, j)) += 1;
+      npairs(Nloci, Mcij(i, j)) += 1; // Save average in last row
+
+      locus += 1;
+
+    } // End locus loop
+  } // End loop through pairs of individuals
 
 
-  } // End Pairwise Fij
+  //Calculate average Fij per locus by dividing sum by total pairs
+   for(int locus = 0; locus <= Nloci; locus++) for(int di = 0; di < ndis; di++){
+      fijsummary(locus, di) = fijsummary(locus, di) / npairs(locus, di);
+   }
 
-  return(fij);
+   return(fijsummary);
 
 }
 

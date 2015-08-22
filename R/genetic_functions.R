@@ -12,6 +12,11 @@ sgs <- function(sgsObj,
     stop("Input data must be of class sgsObj... \n")
   }
 
+  ## Set up output data structure
+
+  sgsOut <- structure(list(), class = "sgsOut")
+
+
   #####
   ## DISTANCE INTERVALS
   ####
@@ -22,6 +27,7 @@ sgs <- function(sgsObj,
     ## Add a new max distance interval if last interval isn't already large enough
       if(max(Mdij) > max(distance_intervals)){
         distance_intervals <- c(distance_intervals, max(Mdij) * 1.001)
+        cat("Adding an aditional distance interval to encompass all pairwise distances.. \n")
       }
 
     # Assign each pairwise combination to a distance interval
@@ -31,6 +37,8 @@ sgs <- function(sgsObj,
       DIsummary = summarizeDIs(Mdij, Mcij, distance_intervals, Nind = sgsObj$Nind)
       rownames(DIsummary) <- c("Distance class", "Max distance", "Average distance",
                                "Number of pairs")
+
+      sgsOut$DIsummary <- DIsummary
 
 
   #####
@@ -54,17 +62,23 @@ sgs <- function(sgsObj,
   ####
 
   ## Calculate pairwise Fij across entire population
-  fijs = calcFijPopCpp(ids = sgsObj$ids,
+  fijsummary = calcFijPopCpp(ids = sgsObj$ids,
                        genotype_data = as.matrix(sgsObj$gen_data),
+                       distance_intervals = distance_intervals,
+                       Mcij = Mcij,
                        ref_gen = ref_gen,
                        Nloci = sgsObj$Nloci,
                        Nallele = sgsObj$Nallele,
                        Nind = sgsObj$Nind,
                        Ngenecopies= sgsObj$Ngenecopies)
 
+    rownames(fijsummary) <- c(sgsObj$loci_names, "ALL LOCI")
+
+    sgsOut$Fijsummary <- fijsummary
+
 
   ## Output a summary table with distance classes, Fij estimates, permutation results, etc
 
 
-  return(fijs)
+  return(sgsOut)
 }
