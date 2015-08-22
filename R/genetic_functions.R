@@ -47,10 +47,10 @@ sgs <- function(sgsObj,
 
     ## Calculate reference allele frequencies
       ## Could probably speed this up by converting loop to Cpp
-    ref_gen <- matrix(data = 0, nrow = Nloci, ncol = Nallele)
+    ref_gen <- matrix(data = 0, nrow = sgsObj$Nloci, ncol = sgsObj$Nallele)
 
     row = 1
-    for(locus in seq(1, (Nloci*2), by = 2)){
+    for(locus in seq(1, (sgsObj$Nloci*2), by = 2)){
       ref_gen[row, ] = calcAlleleFreqPop(sgsObj$gen_data[ , locus],
                                          sgsObj$gen_data[ , locus + 1],
                                          Nallele = sgsObj$Nallele )

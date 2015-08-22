@@ -1,8 +1,4 @@
 
-
-
-
-
 ### Building basic data structure
 
 
@@ -17,6 +13,7 @@ createSgsObj <- function(sample_ids,
                         groups = NULL,
                         genotype_data,
                         ploidy,
+                        loci_names = NULL,
                         x_coords,
                         y_coords){
 
@@ -30,7 +27,8 @@ createSgsObj <- function(sample_ids,
 
   # Set genetic data and loci names
   df$gen_data <- genotype_data
-  df$loci_names <- colnames(genotype_data)[seq(1, Nloci*2, 2)]
+  if(is.null(loci_names)) df$loci_names <- colnames(genotype_data)[seq(1, Nloci*2, 2)]
+  if(!is.null(loci_names)) df$loci_names <- loci_names
 
   # Set spatial coordinates
   df$x <- x_coords
@@ -40,7 +38,7 @@ createSgsObj <- function(sample_ids,
   df$ploidy = ploidy #  ploidy
   df$Nind = length(sample_ids) # Set number of individuals
   df$Nloci = ncol(genotype_data) / ploidy # Set number of loci
-  df$Ngenecopies = Nind * ploidy # Will need to change when missing data is a thing
+  df$Ngenecopies = df$Nind * ploidy # Will need to change when missing data is a thing
 
   # Find max number of alleles across all loci
   df$Nallele = max(sapply(genotype_data, FUN = function(x) length(table(x)))) # Might not work well with missing data
@@ -48,4 +46,216 @@ createSgsObj <- function(sample_ids,
   return(df)
 
 }
+
+
+
+
+
+#################
+##### Read spagedi input file and convert to sgsObj
+###########
+
+## Make it clear that data should follow format in example Spagedi data..
+## Alleles with no non-numeric characters in between
+# Only tested for diploid and 2d coordinate system
+
+readSpagedi <- function(path_to_spagedi_file){
+
+  lines <- readLines(path_to_spagedi_file) # Read lines in output file
+  lines <- lines[-grep("^/", lines)] # Remove comment lines - start with / character
+  lines <- lines[1:(min(grep("END", lines))-1)] # All info before first END statement
+
+
+  ## 1st non comment line : set of 6 numbers separated by a tabulation and representing :		#individuals	#categories	#coordinates	#loci	#digits/allele	max ploidy
+
+    first_line <- as.numeric(strsplit(lines[1], "\t")[[1]]) ## Returns vector with info from first non-comment line
+
+    Nind =          first_line[1]
+    cat("Number of individuals:", Nind, "\n" )
+    Ncats =         first_line[2]
+    cat("Number of categories:", Ncats, "\n" )
+    Ncoords =       first_line[3]
+    cat("Number of spatial dimensions:", Ncoords, "\n" )
+    Nloci =         first_line[4]
+    cat("Number of loci:", Nloci, "\n" )
+    Ndigits =       first_line[5]
+    cat("Number of digits per allele:", Ndigits, "\n" )
+    Ploidy =        first_line[6]
+    cat("Ploidy level:", Ploidy, "\n" )
+
+   # 2nd non comment line : # of distance intervals followed by the upper distance of each interval. Here a negative # of intervals is given so that upper distances are choosen to obtain intervals with the same # of pairwise comparisons.
+
+    second_line <- na.omit(as.numeric(strsplit(lines[2], "\t")[[1]]))
+
+    Ndis = second_line[1] # Assign number of distance intervals
+    cat("Number of distance intervals:", Ndis, "\n")
+    # If specific distance intervals are assigned, save those
+    if(length(second_line) > 1) {
+      Dis = second_line[2:length(second_line)]
+      cat("Distance intervals:", Dis, "\n")
+    }
+
+  ## 3rd non comment line : column labels (<=15 characters).
+  ## 4th and next lines : data for each individual in the following order: Ind name, category, coordinates (here 0), genotypes
+
+    third_line <- na.omit(strsplit(lines[3], "\t")[[1]])
+    data = strsplit(lines[4:length(lines)], split = "\t")
+
+    genotype_data = data.frame(rep(NA, Nind)) ## Initialize genotype data frame
+
+
+  ## If no categories or spatial information
+    if(Ncats == 0 & Ncoords == 0){
+      cat("No category or spatial information detected...\n")
+      loci_names = third_line[2:length(third_line)]
+      ids = sapply(data, "[[", 1) ## First column is id information
+
+      ## Fill in genotype data
+      col2 = 1
+      for(col in 2:(length(data[[1]]))){
+        genotype_data[, col2] = sapply(data, "[[", col)
+        col2 = col2 + 1
+      }
+    }
+
+  ## If categories but not spatial information
+    if(Ncats > 0 & Ncoords == 0){
+      cat("Category but no spatial information detected...\n")
+      loci_names = third_line[3:length(third_line)]
+      ids = sapply(data, "[[", 1) ## First column is id information
+      cats = sapply(data, "[[", 2) ## Category labels
+
+      ## Fill in Genotype data
+      col2 = 1
+      for(col in 3:(length(data[[1]]))){
+        genotype_data[, col2] = sapply(data, "[[", col)
+        col2 = col2 + 1
+      }
+    }
+
+  ## With categories and spatial information
+    if(Ncats > 0 & Ncoords > 0){
+      cat("Categories and spatial information detected...\n")
+      loci_names = third_line[(3 + Ncoords):length(third_line)]
+      ids = sapply(data, "[[", 1) ## First column is id information
+      cats = sapply(data, "[[", 2) ## Category labels
+      x = sapply(data, "[[", 3) ## X coordinates
+      y = sapply(data, "[[", 4) ## X coordinates
+
+      ## Fill in Genotype data
+      col2 = 1
+      for(col in 5:(length(data[[1]]))){
+        genotype_data[, col2] = sapply(data, "[[", col)
+        col2 = col2 + 1
+      }
+    }
+
+
+    ## Split genotype data into separate columns for each allele
+    split_gen_data <- data.frame(rep(NA, Nind))
+    for(col in 1:ncol(genotype_data)){
+
+      split_gen_data <- cbind(split_gen_data,
+                              split_alleles(genotype_data[, col], Ndigits, Ploidy))
+    }
+
+    # Remove first column of split gen_data (All Nas..)
+    split_gen_data <- split_gen_data[, -1]
+
+    ## Convert to numeric
+    for(col in 1:ncol(split_gen_data)){
+      split_gen_data[, col] <- as.numeric(split_gen_data[, col])
+    }
+
+    ## Make sure number of columns matche up with Nloci and Ploidy
+    if(ncol(split_gen_data) != (Nloci * Ploidy)){
+      stop("Error in splitting genotype data.. number of columns do not match number of loci and ploidy level \n")
+    }
+
+
+
+
+    ### Assemble sgsObj
+    out <- createSgsObj(sample_ids = ids,
+                        groups = cats,
+                        genotype_data = split_gen_data,
+                        ploidy = Ploidy,
+                        loci_names = loci_names,
+                        x_coords = as.numeric(x),
+                        y_coords = as.numeric(y))
+
+    ## Final error checking and success message
+
+    # Check loci names matches up with N loci
+    if(length(out$loci_names) != Nloci){
+      stop("Error: Number of loci does not match with length of loci names... \n")
+    }
+
+    if(length(out$ids) != Nind){
+      stop("Error: Length of sample ids does not match number of individuals... \n")
+    }
+
+    cat("Successfully read SPAGeDi input file!\n")
+    return(out)
+}
+
+
+
+
+########
+### Function to split apart concatenated alleles - 0606 into 6 and 6 in separate columns
+##########
+
+
+split_alleles <- function(column_to_split, Ndigits, Ploidy){
+
+  ## Have to maintain missing data
+  ## Leading 0s are left off in Spagedi input data sometimes
+
+
+  ## Add leading zeros for those that are missing
+  # And find missing data
+
+  char_lengths = sapply(column_to_split, nchar)
+
+  missing_indices = which(char_lengths == 1)
+
+  add_ld_zero = which(char_lengths > 1 & char_lengths < Ndigits*Ploidy)
+  cat("Adding leading '0' to ", length(add_ld_zero), " genotypes...\n")
+  column_to_split[add_ld_zero] <- paste("0", column_to_split[add_ld_zero], sep = "")
+
+  # Initialize both columns with blank data
+  out <- data.frame(col1 = rep("0", length(column_to_split)))
+
+  # Split into individual characters
+  split <- sapply(column_to_split, function(x) strsplit(x, split = NULL))
+
+  ## Reconcatonate them
+  col1 = 1 # For split column
+  col2 = 1 # For output
+  for(col1 in seq(1, Ploidy*Ndigits, Ndigits)){
+
+    ## Separate into individual digits
+    dig1 = sapply(split, '[', col1)
+
+    dig2 = NULL
+    dig3 = NULL
+
+    if(Ndigits > 1) dig2 = sapply(split, '[', col1 + 1)
+    if(Ndigits > 2) dig3 = sapply(split, '[', col1 + 2)
+
+   out[, col2] = paste(dig1, dig2, dig3, sep="")
+   col2 = col2 + 1
+  }
+
+  ## Replace missing data
+  out[missing_indices, ] <- "0"
+
+
+  return(out)
+}
+
+
+
+
 
