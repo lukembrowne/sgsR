@@ -51,9 +51,9 @@ sgs <- function(sgsObj,
 
     row = 1
     for(locus in seq(1, (Nloci*2), by = 2)){
-      ref_gen[row, ] = calcAlleleFreqPop(pony$gen_data[ , locus],
-                                         pony$gen_data[ , locus + 1],
-                                         Nallele = pony$Nallele )
+      ref_gen[row, ] = calcAlleleFreqPop(sgsObj$gen_data[ , locus],
+                                         sgsObj$gen_data[ , locus + 1],
+                                         Nallele = sgsObj$Nallele )
       row = row + 1
     }
 
