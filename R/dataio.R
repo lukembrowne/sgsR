@@ -25,11 +25,6 @@ createSgsObj <- function(sample_ids,
   df$ids = sample_ids
   df$groups <- groups
 
-  # Set genetic data and loci names
-  df$gen_data <- genotype_data
-  if(is.null(loci_names)) df$loci_names <- colnames(genotype_data)[seq(1, Nloci*2, 2)]
-  if(!is.null(loci_names)) df$loci_names <- loci_names
-
   # Set spatial coordinates
   df$x <- x_coords
   df$y <- y_coords
@@ -40,8 +35,30 @@ createSgsObj <- function(sample_ids,
   df$Nloci = ncol(genotype_data) / ploidy # Set number of loci
   df$Ngenecopies = df$Nind * ploidy # Will need to change when missing data is a thing
 
+
+  # Set genetic data and loci names
+  df$gen_data <- genotype_data
+  if(is.null(loci_names)) df$loci_names <- colnames(genotype_data)[seq(1, Nloci*2, 2)]
+  if(!is.null(loci_names)) df$loci_names <- loci_names
+
+    # Format genetic data so that it is integers used for indexing instead of raw numbers
+  df$gen_data_f = df$gen_data
+  for(col in seq(1, df$Nloci * df$ploidy, df$ploidy)){
+
+    lev = levels(as.factor(c(df$gen_data_f[, col], df$gen_data_f[, col + 1])))
+
+    df$gen_data_f[, col] = match(df$gen_data_f[, col], lev) - 1 # Minus 1 for 0 indexing
+    df$gen_data_f[, col + 1] = match(df$gen_data_f[, col + 1], lev) - 1
+  }
+
+
   # Find max number of alleles across all loci
-  df$Nallele = max(sapply(genotype_data, FUN = function(x) length(table(x)))) # Might not work well with missing data
+  i = 1
+  for(col in seq(1, df$Nloci * df$ploidy, df$ploidy)){
+  df$Nallele[i] <- length(table(c(genotype_data[, col], genotype_data[, col + 1])))
+  i = i + 1
+  }
+  names(df$Nallele) = df$loci_names
 
   return(df)
 
