@@ -13,7 +13,6 @@ sgs <- function(sgsObj,
   }
 
   ## Set up output data structure
-
   sgsOut <- structure(list(), class = "sgsOut")
 
 
@@ -24,14 +23,21 @@ sgs <- function(sgsObj,
     ## Calculate distance intervals
       Mdij = calcPairwiseDist(sgsObj$x, sgsObj$y, sgsObj$Nind ) ## Distance matrix
 
-    ## Add a new max distance interval if last interval isn't already large enough
+      # If equalized distance interval option is chosen (by setting option to negative)
+      # Find new distance intervals with approximately equal number of pairwise comparisons
+    if(distance_intervals < 0){
+      cat("Finding --", -distance_intervals, "-- distance intervals with approximately equal pairwise comparisons...\n")
+      distance_intervals =  findEqualDIs(Mdij, distance_intervals, sgsObj$Nind)
+    }
+
+      ## Add a new max distance interval if last interval isn't already large enough
       if(max(Mdij) > max(distance_intervals)){
         distance_intervals <- c(distance_intervals, max(Mdij) * 1.001)
-        cat("Adding an aditional distance interval to encompass all pairwise distances.. \n")
+        cat("Adding an aditional distance interval --", max(Mdij) * 1.001,
+            "-- to encompass all pairwise distances.. \n")
       }
 
-    # Assign each pairwise combination to a distance interval
-      Mcij = findDIs(Mdij, distance_intervals, sgsObj$Nind) ## Class
+      Mcij = findDIs(Mdij, distance_intervals, sgsObj$Nind)
 
     # Calculate summary of distance intervals
       DIsummary = summarizeDIs(Mdij, Mcij, distance_intervals, Nind = sgsObj$Nind)

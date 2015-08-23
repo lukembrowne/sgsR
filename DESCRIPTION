@@ -9,7 +9,8 @@ Maintainer: Luke Browne <lukembrowne@gmail.com>
 Description: Spatial genetic structure analyses in R
 License: GPL (>= 2)
 LazyData: TRUE
-Imports:
+Imports: 
     Rcpp (>= 0.12.0)
-LinkingTo:
+LinkingTo: 
     Rcpp
+Suggests: testthat

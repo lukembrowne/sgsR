@@ -217,6 +217,7 @@ NumericVector calcAlleleFreqPop(NumericVector alleles_1,
 // ***************************************************
 // ***************************************************
 // Needs integer inputs
+// [[Rcpp::export]]
 std::vector<float> calcAlleleFreqCppInd(int alleles_1,
                                         int alleles_2,
                                         int Nallele){
