@@ -25,7 +25,7 @@ sgs <- function(sgsObj,
 
       # If equalized distance interval option is chosen (by setting option to negative)
       # Find new distance intervals with approximately equal number of pairwise comparisons
-    if(distance_intervals < 0){
+    if(distance_intervals[1] < 0){
       cat("Finding --", -distance_intervals, "-- distance intervals with approximately equal pairwise comparisons...\n")
       distance_intervals =  findEqualDIs(Mdij, distance_intervals, sgsObj$Nind)
     }
@@ -55,8 +55,6 @@ sgs <- function(sgsObj,
       ## Could probably speed this up by converting loop to Cpp
     ref_gen <- matrix(data = NA, nrow = sgsObj$Nloci, ncol = max(sgsObj$Nallele))
 
-
-
     row = 1
     for(locus in seq(1, (sgsObj$Nloci*2), by = 2)){
       ref_gen[row, 1:sgsObj$Nallele[row]] = calcAlleleFreqPop(sgsObj$gen_data_f[, locus],
@@ -64,7 +62,8 @@ sgs <- function(sgsObj,
                                          Nallele = sgsObj$Nallele[row] )
       row = row + 1
     }
-    ## ref gen as a list
+
+    ## reference genotypes as a list
     ref_gen <- list()
     row = 1
     for(locus in seq(1, (sgsObj$Nloci*2), by = 2)){
@@ -80,16 +79,29 @@ sgs <- function(sgsObj,
   ####
 
   ## Calculate pairwise Fij across entire population
+
+    ### Save x and y coordinates in their own vector so that random_shuffle doesn't overwrite
+    xcopy = rep(NA, length(sgsObj$x))
+    xcopy = replace(xcopy, 1:length(sgsObj$x), sgsObj$x )
+
+    ycopy = rep(NA, length(sgsObj$y))
+    ycopy = replace(ycopy, 1:length(sgsObj$y), sgsObj$y )
+
   fijsummary = calcFijPopCpp(genotype_data = as.matrix(sgsObj$gen_data_f),
                        distance_intervals = distance_intervals,
+                       Mdij = Mdij,
                        Mcij = Mcij,
                        ref_gen = ref_gen,
                        Nloci = sgsObj$Nloci,
                        Nallele = sgsObj$Nallele,
                        Nind = sgsObj$Nind,
-                       Ngenecopies= sgsObj$Ngenecopies)
+                       Ngenecopies= sgsObj$Ngenecopies,
+                       Nperm = nperm,
+                       x_coord = xcopy,
+                       y_coord = ycopy)
 
-    rownames(fijsummary) <- c(sgsObj$loci_names, "ALL LOCI")
+    rownames(fijsummary) <- c(sgsObj$loci_names, "ALL LOCI",
+                              paste(sgsObj$loci_names, "_perm", sep = ""), "ALL_LOCI_perm")
 
     sgsOut$Fijsummary <- fijsummary
 
