@@ -19,19 +19,14 @@ plotSgs <- function(sgsOut, overlay = FALSE, color = "black",
 
     if(is.null(max_distance)) max_distance = max(dist)
 
-    ## Include once permutation is included
-#     if(!is.null(perm)){
-#       perm <- perm[, c(2:(ncol(perm) - 4))] # chop off last 3 columns and 1st col
-#
-#       estimate <- as.numeric(perm["Obs val", ])
-#       conf_hi <- as.numeric(perm["95%CI-sup", ])
-#       conf_low <- as.numeric(perm["95%CI-inf", ])
-#
-#       # Closed symbol if permutation was significant
-#       sig <- apply(perm[c(8,9,10), ], 2, FUN = function(x) {any(x < 0.05)})
-#       symbols <- rep(1, ncol(perm))
-#       symbols[sig] <- 19
+    ## Plotting permutations
+    if(!is.null(sgsOut$PermAvg)){
 
+      #estimate <- sgsOut$PermAvg["ALL_LOCI_perm_avg",] # chop off last 3 columns and 1st col
+      conf_hi <- sgsOut$Perm975["ALL_LOCI_perm_975",]
+      conf_low <- sgsOut$Perm025["ALL_LOCI_perm_025",]
+
+    }
 
     if(overlay){
       par(new = TRUE)
@@ -50,10 +45,10 @@ plotSgs <- function(sgsOut, overlay = FALSE, color = "black",
                     max(estimate, conf_hi, na.rm = TRUE) * 1.1),
            xlim = c(0, max_distance), col = color)
       abline(h = 0, lty = 1, col = "grey50")
-#       if(!is.null(perm)){
-#         lines(dist, conf_hi, lty = 4, col = color)
-#         lines(dist, conf_low, lty = 4, col = color)
-#       }
+      if(!is.null(conf_hi)){
+         lines(dist, conf_hi, lty = 4, col = color)
+         lines(dist, conf_low, lty = 4, col = color)
+       }
     }
 
   } ## End plotting function

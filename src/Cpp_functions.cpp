@@ -28,7 +28,6 @@ NumericMatrix calcPairwiseDist(NumericVector x,
 
 
 
-
 // ***************************************************
 // ***************************************************
 // *** CALCULATE PAIRWISE FIJ BETWEEN A PAIR OF INDIVIDUALS
@@ -107,8 +106,10 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
   std::vector<float> fij(Nloci);
   NumericMatrix  alfreq1(Nloci, MNallele);
   NumericMatrix  alfreq2(Nloci, MNallele);
-  NumericMatrix fijsummary((Nloci + 1) * 2, ndis); // Stores summary information of pairwise Fij
-  NumericMatrix npairs(Nloci + 1, ndis); // Stores number of comparisons
+  NumericMatrix fijsummary((Nloci + 1) * 4, ndis); // Stores summary information of pairwise Fij
+  NumericVector quant975(Nperm);
+  NumericVector quant025(Nperm);
+
 
   // Initialize matrices
   for(int locus = 0; locus < (Nloci + 1); locus++) for(int di = 0; di < ndis; di++) {
@@ -158,31 +159,45 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
   } // End individuals loop
 
 
+  // PERMUTATION
 
 
+  // Set-up
+  int spat_size = x_coord.size(); // Save length of spatial coordinates
+  NumericVector loc_index(spat_size); // Create vector of indices that will be shuffled later
+  for(int i = 0; i < spat_size; i++) loc_index[i] = i;
 
-  // PERMUTATIONS
+  NumericVector x_coord_shuf(spat_size); // Initialize vectors that will hold shuffled locations
+  NumericVector y_coord_shuf(spat_size);
 
-  // If number of permutations is set
-  // Permute spatial locations among individuals
+  // Start permutations of individuals among locations
+  // Must ensure that x and y coordinates are shuffled in unison so that completely new spatial locations are not created during the permutation process
 
-  for(int perm = 0; perm < (Nperm + 1); perm++){
+  for(int perm = 0; perm < (Nperm + 1); perm++){ // Loop through observed (perm = 0) and then total number of permutations
 
+    // Print status update on how far along we are in the permutations..
     if(perm % 100 == 0 ){
-      Rcpp:Rcout << "Working on permutation: " << perm << "... \n";
+      Rcpp::Rcout << "Working on permutation: " << perm << "... \n";
     }
-
 
       if(perm > 0){ // Skip if it's the first permutation and use observed Mdij and Mcij
 
-        // Shuffle x and y spatial locations
-        std::random_shuffle(x_coord.begin(), x_coord.end());
-        std::random_shuffle(y_coord.begin(), y_coord.end());
+        // Otherwise, shuffle location indices and corresponding spatial coordinates
+        std::random_shuffle(loc_index.begin(), loc_index.end()); // Shuffle location indices
+
+        for(int i = 0; i < spat_size; i++){
+          x_coord_shuf[i] = x_coord[loc_index[i]];
+          y_coord_shuf[i] = y_coord[loc_index[i]];
+        }
+
 
         // Recalculate distance between individuals and distance interval classification
-        Mdij = calcPairwiseDist(x_coord, y_coord, Nind);
+        Mdij = calcPairwiseDist(x_coord_shuf, y_coord_shuf, Nind);
         Mcij = findDIs(Mdij, distance_intervals, Nind);
       }
+
+
+
 
       // CALCULATING PAIRWISE Fij
 
@@ -212,7 +227,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
           perm_results[Nloci][di][perm] += *k; // Save sum across all loci in last row
 
           perm_results_npairs[locus][di][perm] += 1; // Save number of pairwise combinations to use in calculate averages
-          perm_results_npairs[Nloci][di][perm] += 1; // Save average in last row
+          perm_results_npairs[Nloci][di][perm] += 1;
 
           locus += 1;
 
@@ -225,7 +240,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
   //Calculate average Fij per locus by dividing sum by total pairs
   // Note that locus <= Nloci in loop to calculate for average across loci as well
    for(int locus = 0; locus <= Nloci; locus++) for(int di = 0; di < ndis; di++) for(int perm = 0; perm < (Nperm + 1); perm++){
-     perm_results[locus][di][perm] = perm_results[locus][di][perm] / perm_results_npairs[locus][di][perm];
+      perm_results[locus][di][perm] = perm_results[locus][di][perm] / perm_results_npairs[locus][di][perm];
    }
 
    // Save out to summary matrix
@@ -238,8 +253,24 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
 
        fijsummary(locus + Nloci + 1, di) += perm_results[locus][di][perm];
        fijsummary(Nloci + Nloci + 1, di) += perm_results[Nloci][di][perm]; // Sum across loci
-     }
-   }
+
+       // Save values to calculate 95% quantiles
+       quant975[perm-1] = perm_results[locus][di][perm]; // -1 index bc perm is looping starting on perm = 1
+       quant025[perm-1] = perm_results[locus][di][perm];
+
+     } // End permutation loop
+
+     // Calculate 2.5 % and 95 % quantiles
+     std::sort(quant975.begin(), quant975.end()); // Sort vectors
+     std::sort(quant025.begin(), quant025.end());
+     float quant975_val = quant975[quant975.size()*(0.975 - 0.000000001)]; // Assign quantile value
+     float quant025_val = quant025[quant025.size()*(0.025 - 0.000000001)];
+
+
+     fijsummary(locus + Nloci* 2 + 2, di) = quant025_val; // Save in fijsummary after observed and perm values
+     fijsummary(locus + Nloci* 3 + 3, di) = quant975_val;
+
+   } // End locus and di loop
 
    for(int locus = 0; locus <= Nloci; locus++) for(int di = 0; di < ndis; di++){
      fijsummary(locus + Nloci + 1, di) = fijsummary(locus + Nloci + 1, di) / Nperm; // Take avg based on permutation

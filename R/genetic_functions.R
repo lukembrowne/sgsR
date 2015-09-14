@@ -80,13 +80,6 @@ sgs <- function(sgsObj,
 
   ## Calculate pairwise Fij across entire population
 
-    ### Save x and y coordinates in their own vector so that random_shuffle doesn't overwrite
-    xcopy = rep(NA, length(sgsObj$x))
-    xcopy = replace(xcopy, 1:length(sgsObj$x), sgsObj$x )
-
-    ycopy = rep(NA, length(sgsObj$y))
-    ycopy = replace(ycopy, 1:length(sgsObj$y), sgsObj$y )
-
   fijsummary = calcFijPopCpp(genotype_data = as.matrix(sgsObj$gen_data_f),
                        distance_intervals = distance_intervals,
                        Mdij = Mdij,
@@ -97,13 +90,27 @@ sgs <- function(sgsObj,
                        Nind = sgsObj$Nind,
                        Ngenecopies= sgsObj$Ngenecopies,
                        Nperm = nperm,
-                       x_coord = xcopy,
-                       y_coord = ycopy)
+                       x_coord = sgsObj$x,
+                       y_coord = sgsObj$y)
+
+
 
     rownames(fijsummary) <- c(sgsObj$loci_names, "ALL LOCI",
-                              paste(sgsObj$loci_names, "_perm", sep = ""), "ALL_LOCI_perm")
+                        paste(sgsObj$loci_names, "_perm_avg", sep = ""), "ALL_LOCI_perm_avg",
+                        paste(sgsObj$loci_names, "_perm_025", sep = ""), "ALL_LOCI_perm_025",
+                        paste(sgsObj$loci_names, "_perm_975", sep = ""), "ALL_LOCI_perm_975")
 
-    sgsOut$Fijsummary <- fijsummary
+    round(fijsummary, 4)
+
+    sgsOut$Fijsummary <- fijsummary[1:(sgsObj$Nloci + 1), ]
+
+    if(nperm > 0){
+
+    sgsOut$PermAvg <- fijsummary[(sgsObj$Nloci + 2):(sgsObj$Nloci*2 + 2), ]
+    sgsOut$Perm025 <- fijsummary[(sgsObj$Nloci*2 + 3):(sgsObj$Nloci*3 + 3), ]
+    sgsOut$Perm975<- fijsummary[(sgsObj$Nloci*3 + 4):(sgsObj$Nloci*4 + 4), ]
+    }
+
 
 
   ## Output a summary table with distance classes, Fij estimates, permutation results, etc
