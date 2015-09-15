@@ -1,5 +1,10 @@
 
+###############################
+#### Plot results of SGS analysis
+###############################
 
+# This function plots the amount of spatial autocorrelation in relatedness among the samples,
+# which is a typical graph made from these type of analyses
 
 plotSgs <- function(sgsOut, overlay = FALSE, color = "black",
                     max_distance = NULL){
@@ -9,43 +14,43 @@ plotSgs <- function(sgsOut, overlay = FALSE, color = "black",
     stop("Data must be of class sgsOut.. \n")
   }
 
-    symbols <- 19
-
+    ## Set values
     estimate <- sgsOut$Fijsummary["ALL LOCI",] ## Save relatedness estimate
     dist <- sgsOut$DIsummary["Max distance", ] ## Save max distance intervals
 
-    conf_hi = 0
+    conf_hi = 0 # Placeholders
     conf_low = 0
 
-    if(is.null(max_distance)) max_distance = max(dist)
+    if(is.null(max_distance)) max_distance = max(dist) # If max distance not set, set it
 
-    ## Plotting permutations
-    if(!is.null(sgsOut$PermAvg)){
+    ## Saving permutation results
+    if(!is.null(sgsOut$PermAvg)){ # If permutation results found, continue..
 
-      #estimate <- sgsOut$PermAvg["ALL_LOCI_perm_avg",] # chop off last 3 columns and 1st col
       conf_hi <- sgsOut$Perm975["ALL_LOCI_perm_975",]
       conf_low <- sgsOut$Perm025["ALL_LOCI_perm_025",]
 
     }
 
-    if(overlay){
+    if(overlay){ # Option to overlay plot on top of another
       par(new = TRUE)
-      points(dist, estimate, type = "b", pch = symbols, xlab = "", ylab = "",
+      points(dist, estimate, type = "b", pch = 19, xlab = "", ylab = "",
              yaxt = "n", xaxt = "n", col = color, lwd = 2, lty = 1)
-#       if(!is.null(perm)){
-#         lines(dist, conf_hi, lty = 4, col = color)
-#         lines(dist, conf_low, lty = 4, col = color)
-#       }
+      if(!is.null(conf_hi)){
+        lines(dist, conf_hi, lty = 4, col = color)
+        lines(dist, conf_low, lty = 4, col = color)
+      }
 
     } else{
 
-      plot(dist, estimate, type = "b", pch = symbols, las = 1,
+      ## Main plotting section
+      plot(dist, estimate, type = "b", pch = 191, las = 1,
            ylab = "Kinship", xlab = "Distance (m)", lwd = 2,
            ylim = c(min(estimate, conf_low, na.rm = TRUE) * 1.1,
                     max(estimate, conf_hi, na.rm = TRUE) * 1.1),
            xlim = c(0, max_distance), col = color)
-      abline(h = 0, lty = 1, col = "grey50")
-      if(!is.null(conf_hi)){
+      abline(h = 0, lty = 1, col = "grey50") # Horizontal line where relatedness = 0
+
+      if(!is.null(conf_hi)){ ## Add permutation lines
          lines(dist, conf_hi, lty = 4, col = color)
          lines(dist, conf_low, lty = 4, col = color)
        }

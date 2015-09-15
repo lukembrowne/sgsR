@@ -1,13 +1,10 @@
+#################
+##### Building basic data structure - sgsObj
+###########
 
-### Building basic data structure
-
-
-# Issues - how to deal with labeling of loci - genotype_data should have labeled columns?
-  # Should it be a matrix or data frame?
-
-## Set it up to be able to deal with varying number of alleles per locus
-
-## clean up loci names part
+### sgsObj is the data structure that will hold all the information necessary for the sgs analysis
+# It includes the genotype data, the location data, information about ploidy, groups, names of loci
+# Can be created from scratch through the function below, or by reading in text input files created by other programs
 
 createSgsObj <- function(sample_ids,
                         groups = NULL,
@@ -23,7 +20,7 @@ createSgsObj <- function(sample_ids,
 
   # Set sample ids and groups
   df$ids = sample_ids
-  df$groups <- groups
+  df$groups <- groups ## Groups functionality not currently implemented..
 
   # Set spatial coordinates
   df$x <- x_coords
@@ -71,6 +68,8 @@ createSgsObj <- function(sample_ids,
 #################
 ##### Read spagedi input file and convert to sgsObj
 ###########
+
+## This function reads in a spagedi text input file and converts it to an sgsObj
 
 ## Make it clear that data should follow format in example Spagedi data..
 ## Alleles with no non-numeric characters in between
@@ -188,9 +187,6 @@ readSpagedi <- function(path_to_spagedi_file){
     if(ncol(split_gen_data) != (Nloci * Ploidy)){
       stop("Error in splitting genotype data.. number of columns do not match number of loci and ploidy level \n")
     }
-
-
-
 
     ### Assemble sgsObj
     out <- createSgsObj(sample_ids = ids,

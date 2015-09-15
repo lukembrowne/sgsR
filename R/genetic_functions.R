@@ -1,7 +1,14 @@
 
 
-
+###############################
 #### Main SGS analysis function
+###############################
+
+## This is the meat of the package, the main function to do the main analysis.
+# It performs several steps along the way (finding distance intervals, calculating SGS,
+# conducting permutation tests). Calls several C++ functions to speed up the process.
+
+# Returns an sgsOut object that holds summary information about the results of the analysis
 
 sgs <- function(sgsObj,
                 distance_intervals,
@@ -21,13 +28,13 @@ sgs <- function(sgsObj,
   ####
 
     ## Calculate distance intervals
-      Mdij = calcPairwiseDist(sgsObj$x, sgsObj$y, sgsObj$Nind ) ## Distance matrix
+      Mdij = calcPairwiseDist(sgsObj$x, sgsObj$y, sgsObj$Nind ) ## Distance matrix - C++ func
 
       # If equalized distance interval option is chosen (by setting option to negative)
       # Find new distance intervals with approximately equal number of pairwise comparisons
     if(distance_intervals[1] < 0){
       cat("Finding --", -distance_intervals, "-- distance intervals with approximately equal pairwise comparisons...\n")
-      distance_intervals =  findEqualDIs(Mdij, distance_intervals, sgsObj$Nind)
+      distance_intervals =  findEqualDIs(Mdij, distance_intervals, sgsObj$Nind) # C++ func
     }
 
       ## Add a new max distance interval if last interval isn't already large enough
@@ -37,14 +44,14 @@ sgs <- function(sgsObj,
             "-- to encompass all pairwise distances.. \n")
       }
 
-      Mcij = findDIs(Mdij, distance_intervals, sgsObj$Nind)
+      Mcij = findDIs(Mdij, distance_intervals, sgsObj$Nind) # C++ func
 
     # Calculate summary of distance intervals
-      DIsummary = summarizeDIs(Mdij, Mcij, distance_intervals, Nind = sgsObj$Nind)
+      DIsummary = summarizeDIs(Mdij, Mcij, distance_intervals, Nind = sgsObj$Nind) # C++ func
       rownames(DIsummary) <- c("Distance class", "Max distance", "Average distance",
                                "Number of pairs")
 
-      sgsOut$DIsummary <- DIsummary
+      sgsOut$DIsummary <- DIsummary ## Save summary information about distance intervals
 
 
   #####
@@ -79,6 +86,10 @@ sgs <- function(sgsObj,
   ####
 
   ## Calculate pairwise Fij across entire population
+  # This is a huge C++ function that perfroms the brunt of the SGSG analysis
+
+  ## Returns a matrix with information on Fij estimates, permutation results, for each loci,
+    # averaged across loci for each distance class
 
   fijsummary = calcFijPopCpp(genotype_data = as.matrix(sgsObj$gen_data_f),
                        distance_intervals = distance_intervals,
@@ -100,21 +111,15 @@ sgs <- function(sgsObj,
                         paste(sgsObj$loci_names, "_perm_025", sep = ""), "ALL_LOCI_perm_025",
                         paste(sgsObj$loci_names, "_perm_975", sep = ""), "ALL_LOCI_perm_975")
 
-    round(fijsummary, 4)
-
     sgsOut$Fijsummary <- fijsummary[1:(sgsObj$Nloci + 1), ]
 
-    if(nperm > 0){
-
-    sgsOut$PermAvg <- fijsummary[(sgsObj$Nloci + 2):(sgsObj$Nloci*2 + 2), ]
-    sgsOut$Perm025 <- fijsummary[(sgsObj$Nloci*2 + 3):(sgsObj$Nloci*3 + 3), ]
-    sgsOut$Perm975<- fijsummary[(sgsObj$Nloci*3 + 4):(sgsObj$Nloci*4 + 4), ]
+    if(nperm > 0){ # If permutation selected, add it to the output
+      sgsOut$PermAvg <- fijsummary[(sgsObj$Nloci + 2):(sgsObj$Nloci*2 + 2), ]
+      sgsOut$Perm025 <- fijsummary[(sgsObj$Nloci*2 + 3):(sgsObj$Nloci*3 + 3), ]
+      sgsOut$Perm975<- fijsummary[(sgsObj$Nloci*3 + 4):(sgsObj$Nloci*4 + 4), ]
     }
 
-
-
   ## Output a summary table with distance classes, Fij estimates, permutation results, etc
+   return(sgsOut)
 
-
-  return(sgsOut)
 }

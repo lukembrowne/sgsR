@@ -35,6 +35,7 @@ NumericMatrix calcPairwiseDist(NumericVector x,
 // ***************************************************
 
 // Returns a vector with Fij estimate at each locus
+
 // [[Rcpp::export]]
 std::vector<float> calcFijPairwiseCpp(List ref_gen,
                          NumericMatrix alfreq1,
@@ -83,6 +84,10 @@ std::vector<float> calcFijPairwiseCpp(List ref_gen,
 // ***************************************************
 // ***************************************************
 
+// Returns a matrix with first section as Fij estimates for each locus individiually, then averaged across loci
+// Second section is average estimates after permutation of spatial location among individuals
+// Third and fourth section are the 2.5 % and 97.5 % quantiles of the permuted data
+
 // [[Rcpp::export]]
 NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
                             NumericMatrix Mdij,
@@ -97,6 +102,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
                             NumericVector x_coord,
                             NumericVector y_coord){
 
+  // Initialize variables
   int MNallele = max(Nallele);
   float ind_al_freq[Nloci][MNallele][Nind]; // 3d array that saves allele freq for each individual
   int ndis = distance_intervals.size(); // Number of distance intervals
@@ -111,7 +117,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
   NumericVector quant025(Nperm);
 
 
-  // Initialize matrices
+  // Initialize matrices - fill them with 0s, or could cause problems later on
   for(int locus = 0; locus < (Nloci + 1); locus++) for(int di = 0; di < ndis; di++) {
 
     fijsummary(locus, di) = 0;
@@ -124,6 +130,8 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
    }
 
   // Loop through individuals and calculate allele frequencies for each individual
+  // Frequency data looks something like: 0 0 0 .5 .5 0 0 (for a heterozygote)
+  // Save results in a 3d array that is arraged [locus][allele][individual]
   for(int indi = 0; indi < Nind; ++indi){
 
     row = 0; // Row of individual allele frequency 3d array - corresponds to locus
@@ -157,21 +165,24 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
 
     } // End loci loop
   } // End individuals loop
+  // END CALCULATING INDIVIDUAL ALLELE FREQUENCIES
 
+  // PERMUTATION AND CALCULATING FIJ
 
-  // PERMUTATION
-
-
-  // Set-up
+  // Initialize variables
   int spat_size = x_coord.size(); // Save length of spatial coordinates
   NumericVector loc_index(spat_size); // Create vector of indices that will be shuffled later
-  for(int i = 0; i < spat_size; i++) loc_index[i] = i;
+  for(int i = 0; i < spat_size; i++) loc_index[i] = i; // Sequence of integers from 0 to ...
 
   NumericVector x_coord_shuf(spat_size); // Initialize vectors that will hold shuffled locations
   NumericVector y_coord_shuf(spat_size);
 
+
+
   // Start permutations of individuals among locations
   // Must ensure that x and y coordinates are shuffled in unison so that completely new spatial locations are not created during the permutation process
+
+  // Note that the OBSERVED data are held in perm_results[locus][distance_interval][0]
 
   for(int perm = 0; perm < (Nperm + 1); perm++){ // Loop through observed (perm = 0) and then total number of permutations
 
@@ -180,9 +191,11 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
       Rcpp::Rcout << "Working on permutation: " << perm << "... \n";
     }
 
+      // Randomizing spatial locations among individuals
       if(perm > 0){ // Skip if it's the first permutation and use observed Mdij and Mcij
 
         // Otherwise, shuffle location indices and corresponding spatial coordinates
+        // This function alters the object in place, so be careful!
         std::random_shuffle(loc_index.begin(), loc_index.end()); // Shuffle location indices
 
         for(int i = 0; i < spat_size; i++){
@@ -190,11 +203,11 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
           y_coord_shuf[i] = y_coord[loc_index[i]];
         }
 
-
         // Recalculate distance between individuals and distance interval classification
         Mdij = calcPairwiseDist(x_coord_shuf, y_coord_shuf, Nind);
         Mcij = findDIs(Mdij, distance_intervals, Nind);
-      }
+
+      } // End shuffling spatial locations
 
 
 
@@ -202,11 +215,12 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
       // CALCULATING PAIRWISE Fij
 
       // Calculate pairwise Fij between all pairs of individuals
+      // Loop through all pairs of individuals
       for(int i = 0; i < (Nind - 1) ; i++) for(int j = i+1; j <= (Nind - 1); j++){ // Loops through all pairs of individuals
 
         int di = Mcij(i, j); // Save distance class as an index to save in perm_results
 
-        // Loop through and save allele frequency for each individual quickly
+        // Loop through and save allele frequency separately for each individual
         for(int locus = 0; locus < Nloci; ++locus){
           for(int allele = 0; allele < Nallele[locus]; ++allele){
             alfreq1(locus, allele) = ind_al_freq[locus][allele][i];
@@ -277,13 +291,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
      fijsummary(Nloci + Nloci + 1, di) = fijsummary(Nloci + Nloci + 1, di) / Nperm;
    }
 
-
-
    // Save out summary information of permuted results
-
-
-
-
    return(fijsummary);
 
 }
@@ -326,7 +334,7 @@ NumericVector calcAlleleFreqPop(NumericVector alleles_1,
 // *** CALCULATE ALLELE FREQUENCY FOR AN INDIVIDUAL
 // ***************************************************
 // ***************************************************
-// Needs integer inputs
+
 // [[Rcpp::export]]
 std::vector<float> calcAlleleFreqCppInd(int alleles_1,
                                         int alleles_2,
@@ -435,7 +443,6 @@ NumericMatrix findDIs(NumericMatrix Mdij,
 // ***************************
 // ***************************
 
-// Need to add ability to deal with distance classes bigger than max dist int given
 // Looping through the pairwise matrix for each distance interval is likely not the most efficient way to do this
 
 // [[Rcpp::export]]
