@@ -43,7 +43,7 @@ plotSgs <- function(sgsOut, overlay = FALSE, color = "black",
     } else{
 
       ## Main plotting section
-      plot(dist, estimate, type = "b", pch = 191, las = 1,
+      plot(dist, estimate, type = "b", pch = 19, las = 1,
            ylab = "Kinship", xlab = "Distance (m)", lwd = 2,
            ylim = c(min(estimate, conf_low, na.rm = TRUE) * 1.1,
                     max(estimate, conf_hi, na.rm = TRUE) * 1.1),
