@@ -6,3 +6,13 @@ src/*.so
 src/*.dll
 playground.R
 sgsR.Rproj
+DataSSR-fine_scale_spatial_structure.txt
+.Rbuildignore
+.DS_Store
+DataSSR-with_spatial_distance_matrix.txt
+F1_Adults_spagedi.txt
+bilsaadults.txt
+error.txt
+out.txt
+f16dispersedspagedi.txt
+README.Rmd
