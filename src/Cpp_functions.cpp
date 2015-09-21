@@ -6,12 +6,14 @@ using namespace Rcpp;
 std::vector<float> calcFijPairwiseCpp(List ref_gen,
                          NumericMatrix alfreq1,
                          NumericMatrix alfreq2,
-                         int Nloci, NumericVector Nallele,
-                         int n);
+                         int Nloci,
+                         NumericVector Nallele,
+                         NumericVector Ngenecopies);
 
 NumericVector calcAlleleFreqPop(NumericVector alleles_1,
                                 NumericVector alleles_2,
-                                int Nallele);
+                                int Nallele,
+                                int Ngenecopies);
 
 
 std::vector<float> calcAlleleFreqCppInd(int alleles_1,
@@ -40,8 +42,9 @@ NumericMatrix calcPairwiseDist(NumericVector x,
 std::vector<float> calcFijPairwiseCpp(List ref_gen,
                          NumericMatrix alfreq1,
                          NumericMatrix alfreq2,
-                         int Nloci, NumericVector Nallele,
-                         int n){
+                         int Nloci,
+                         NumericVector Nallele,
+                         NumericVector Ngenecopies){
 
   float denom[Nloci];
   float numer[Nloci];
@@ -56,20 +59,30 @@ std::vector<float> calcFijPairwiseCpp(List ref_gen,
 
   for(int locus = 0;  locus < Nloci; ++locus){ // Loop through loci
 
-    for(int allele = 0; allele < Nallele[locus]; ++allele){ // Loop through alleles
 
-    ref_gen_loc = ref_gen[locus]; // Subset ref gen list to just row we're interested in
+    // If data is missing at the locus for either individual, there will be a -999 at the [0]
+    // of the alfreq table. Can use this an a signal to skip calculating Fij for that locus
+    if((alfreq1(locus, 0) == -999) || (alfreq2(locus, 0) == -999)){
+      numer[locus] = -999;
+      denom[locus] = 1;
+    } else {
 
-      // Calculate Numerator and Denominator of Loiselle et al. 1995
-      numer[locus]  +=  (alfreq1(locus, allele) - ref_gen_loc[allele]) *
-                        (alfreq2(locus, allele) - ref_gen_loc[allele]) +
-        (ref_gen_loc[allele]*(1 - ref_gen_loc[allele])) / (n - 1);
+      for(int allele = 0; allele < Nallele[locus]; ++allele){ // Loop through alleles
 
-      denom[locus] += ref_gen_loc[allele] * (1 - ref_gen_loc[allele]);
+        ref_gen_loc = ref_gen[locus]; // Subset ref gen list to just row we're interested in
 
-    } // End allele loop
+          // Calculate Numerator and Denominator of Loiselle et al. 1995
+          numer[locus]  +=  (alfreq1(locus, allele) - ref_gen_loc[allele]) *
+                            (alfreq2(locus, allele) - ref_gen_loc[allele]) +
+            (ref_gen_loc[allele]*(1 - ref_gen_loc[allele])) / (Ngenecopies[locus]- 1);
 
-    fij[locus] = numer[locus] / denom[locus]; // Calculate Fij per locus
+          denom[locus] += ref_gen_loc[allele] * (1 - ref_gen_loc[allele]);
+
+      } // End allele loop
+
+    } // End else statement
+
+    fij[locus] = numer[locus] / denom[locus]; // Calculate Fij per locus.. should equal -999 for missing data
 
   } // End loci loop
 
@@ -97,7 +110,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
                             int Nloci,
                             NumericVector Nallele,
                             int Nind,
-                            int Ngenecopies,
+                            NumericVector Ngenecopies,
                             int Nperm,
                             NumericVector x_coord,
                             NumericVector y_coord){
@@ -131,7 +144,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
 
   // Loop through individuals and calculate allele frequencies for each individual
   // Frequency data looks something like: 0 0 0 .5 .5 0 0 (for a heterozygote)
-  // Save results in a 3d array that is arraged [locus][allele][individual]
+  // Save results in a 3d array that is arranged [locus][allele][individual]
   for(int indi = 0; indi < Nind; ++indi){
 
     row = 0; // Row of individual allele frequency 3d array - corresponds to locus
@@ -141,8 +154,8 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
       std::vector<float> freq_table(Nallele[row]);
 
       freq_table = calcAlleleFreqCppInd(genotype_data(indi, locus),
-                                                         genotype_data(indi, locus + 1),
-                                                         Nallele[row]);
+                                        genotype_data(indi, locus + 1),
+                                        Nallele[row]);
       /*
       // Code to print out individual frequency tables
       std::cout << "Indi: " << indi <<" | Locus - "<< locus << "|:";
@@ -150,6 +163,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
       std::cout << *i << ' ';
       Rcpp::Rcout << "\n";
       */
+
 
       // Have to then loop through allele frequency table to fill in individual part
       // of the array
@@ -176,7 +190,6 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
 
   NumericVector x_coord_shuf(spat_size); // Initialize vectors that will hold shuffled locations
   NumericVector y_coord_shuf(spat_size);
-
 
 
   // Start permutations of individuals among locations
@@ -221,6 +234,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
         int di = Mcij(i, j); // Save distance class as an index to save in perm_results
 
         // Loop through and save allele frequency separately for each individual
+        // If data is missing at alocus for that indivivdual, -999 will be in [0] index
         for(int locus = 0; locus < Nloci; ++locus){
           for(int allele = 0; allele < Nallele[locus]; ++allele){
             alfreq1(locus, allele) = ind_al_freq[locus][allele][i];
@@ -229,12 +243,19 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
         }
 
         // Should return an array / vector with Fij estimate for each locus
+        // If data is missing at a locus for either individual, the value will be -999
         fij  =   calcFijPairwiseCpp(ref_gen, alfreq1, alfreq2,
                                          Nloci, Nallele, Ngenecopies);
 
         // Save per locus Fij estimate
         int locus = 0; // Initialize before loop
         for (std::vector<float>::iterator k = fij.begin(); k != fij.end(); ++k){
+
+          // Check for data missing at locus - if data is missing, skip to next locus without adding to results summary
+          if(*k == -999){
+            locus += 1;
+            continue;
+          }
 
           // First index of perm results is the OBSERVED
           perm_results[locus][di][perm] += *k; // *k accesses value in fij vector
@@ -246,6 +267,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
           locus += 1;
 
         } // End locus loop
+
       } // End loop through pairs of individuals
 
     } // End permutation loop
@@ -307,21 +329,27 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
 // [[Rcpp::export]]
 NumericVector calcAlleleFreqPop(NumericVector alleles_1,
                                 NumericVector alleles_2,
-                                int Nallele){
+                                int Nallele,
+                                int Ngenecopies){
 
 
   NumericVector freq_table(Nallele);
-  float AlleleTotal = alleles_1.size() + alleles_2.size();
 
   // Loop through number of alleles and add them to frequency table
   for(int allele = 0; allele < alleles_1.size(); ++allele){
+
+      // Skip if data is missing
+    if((alleles_1[allele] == -999) || (alleles_2[allele] == -999)){
+      continue;
+    }
+
     freq_table[alleles_1[allele]] += 1;
     freq_table[alleles_2[allele]] += 1;
   }
 
-  // Divide by total number of alleles to get frequency
+  // Divide by total number of gene copies at that locus to get frequency
   for(int allele = 0; allele < Nallele; ++allele){
-    freq_table[allele] = freq_table[allele] / AlleleTotal;
+    freq_table[allele] = freq_table[allele] / Ngenecopies;
   }
 
   return(freq_table);
@@ -341,21 +369,22 @@ std::vector<float> calcAlleleFreqCppInd(int alleles_1,
                                         int Nallele){
 
 
-  std::vector<float> freq_table(Nallele);
-  float AlleleTotal = 2; // FOr looking at individual alleles
+  std::vector<float> freq_table(Nallele, 0);
+  float AlleleTotal = 2; // Depends on ploidy levels
 
-
-  // Loop through number of alleles and add them to frequency table
-  for(int allele = 0; allele < 1; ++allele){
-
-    freq_table[alleles_1] += 1; // Minus 1 is because of zero indexing in Cpp
+  // Skip if data is missing, otherwise continue
+  if((alleles_1 == -999) || (alleles_2 == -999)){
+    freq_table[0] = -999; // Assign first index of freq table is -999 if locus has missing data
+  } else {
+    freq_table[alleles_1] += 1;
     freq_table[alleles_2] += 1;
-  }
 
-  // Divide by total number of alleles to get frequency
-  for(int allele = 0; allele < Nallele; ++allele){
-    freq_table[allele] = freq_table[allele] / AlleleTotal;
-  }
+    // Divide by total number of alleles to get frequency
+    for(int allele = 0; allele < Nallele; ++allele){
+      freq_table[allele] = freq_table[allele] / AlleleTotal;
+    }
+
+  } // End else statement
 
   return(freq_table);
 

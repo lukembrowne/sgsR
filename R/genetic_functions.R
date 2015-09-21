@@ -58,26 +58,23 @@ sgs <- function(sgsObj,
   ## REFERENCE ALLELE FREQUENCY
   ####
 
-    ## Calculate reference allele frequencies
-      ## Could probably speed this up by converting loop to Cpp
-    ref_gen <- matrix(data = NA, nrow = sgsObj$Nloci, ncol = max(sgsObj$Nallele))
-
-    row = 1
-    for(locus in seq(1, (sgsObj$Nloci*2), by = 2)){
-      ref_gen[row, 1:sgsObj$Nallele[row]] = calcAlleleFreqPop(sgsObj$gen_data_f[, locus],
-                                         sgsObj$gen_data_f[ , locus + 1],
-                                         Nallele = sgsObj$Nallele[row] )
-      row = row + 1
-    }
 
     ## reference genotypes as a list
+    ##
+      ## Could probably speed up a bit by converting loop to C++
     ref_gen <- list()
     row = 1
     for(locus in seq(1, (sgsObj$Nloci*2), by = 2)){
-      ref_gen[[row]] = calcAlleleFreqPop(sgsObj$gen_data_f[, locus],
-                                         sgsObj$gen_data_f[ , locus + 1],
-                                         Nallele = sgsObj$Nallele[row])
+      ref_gen[[row]] = calcAlleleFreqPop(sgsObj$gen_data_int[, locus],
+                                         sgsObj$gen_data_int[ , locus + 1],
+                                         Nallele = sgsObj$Nallele[row],
+                                         Ngenecopies = sgsObj$Ngenecopies[row])
       row = row + 1
+    }
+
+    ## Check to make sure allele frequencies at each locus sum to one
+    if(any(sapply(ref_gen, sum) != 1)){
+      stop("Reference allele frequencies do not sum to 1... \n")
     }
 
 
@@ -91,7 +88,7 @@ sgs <- function(sgsObj,
   ## Returns a matrix with information on Fij estimates, permutation results, for each loci,
     # averaged across loci for each distance class
 
-  fijsummary = calcFijPopCpp(genotype_data = as.matrix(sgsObj$gen_data_f),
+  fijsummary = calcFijPopCpp(genotype_data = as.matrix(sgsObj$gen_data_int),
                        distance_intervals = distance_intervals,
                        Mdij = Mdij,
                        Mcij = Mcij,
@@ -99,7 +96,7 @@ sgs <- function(sgsObj,
                        Nloci = sgsObj$Nloci,
                        Nallele = sgsObj$Nallele,
                        Nind = sgsObj$Nind,
-                       Ngenecopies= sgsObj$Ngenecopies,
+                       Ngenecopies = sgsObj$Ngenecopies,
                        Nperm = nperm,
                        x_coord = sgsObj$x,
                        y_coord = sgsObj$y)

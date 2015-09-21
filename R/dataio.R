@@ -30,31 +30,59 @@ createSgsObj <- function(sample_ids,
   df$ploidy = ploidy #  ploidy
   df$Nind = length(sample_ids) # Set number of individuals
   df$Nloci = ncol(genotype_data) / ploidy # Set number of loci
-  df$Ngenecopies = df$Nind * ploidy # Will need to change when missing data is a thing
-
 
   # Set genetic data and loci names
   df$gen_data <- genotype_data
   if(is.null(loci_names)) df$loci_names <- colnames(genotype_data)[seq(1, Nloci*2, 2)]
   if(!is.null(loci_names)) df$loci_names <- loci_names
 
-    # Format genetic data so that it is integers used for indexing instead of raw numbers
-  df$gen_data_f = df$gen_data
+    # Format genetic data so that uses integers instead of raw numbers,
+    # used later for indexing in C++
+
+    # Exclude missing data!
+  df$gen_data_int = df$gen_data
+
   for(col in seq(1, df$Nloci * df$ploidy, df$ploidy)){
 
-    lev = levels(as.factor(c(df$gen_data_f[, col], df$gen_data_f[, col + 1])))
+    ## Save indices of missing data, should be same for both columns of the locus
+    miss_ind <- which(df$gen_data_int[ , col ] == -999)
 
-    df$gen_data_f[, col] = match(df$gen_data_f[, col], lev) - 1 # Minus 1 for 0 indexing
-    df$gen_data_f[, col + 1] = match(df$gen_data_f[, col + 1], lev) - 1
+      # Save levels of alleles
+    lev = levels(as.factor(c(df$gen_data_int[, col], df$gen_data_int[, col + 1])))
+
+     if(any(lev == "-999")){ # If any missing data present
+      lev <- lev[-which(lev == "-999")] # Remove missing data from levels list
+     }
+
+      # Reformat as integer
+    df$gen_data_int[, col] = match(df$gen_data_int[, col], lev) - 1 # Minus 1 for 0 indexing
+    df$gen_data_int[, col + 1] = match(df$gen_data_int[, col + 1], lev) - 1
+
+      # Add back in missing data
+    df$gen_data_int[miss_ind, col] <- -999
+    df$gen_data_int[miss_ind, col + 1] <- -999
   }
 
 
   # Find max number of alleles across all loci
   i = 1
   for(col in seq(1, df$Nloci * df$ploidy, df$ploidy)){
-  df$Nallele[i] <- length(table(c(genotype_data[, col], genotype_data[, col + 1])))
-  i = i + 1
+
+    inc_missing <- table(c(genotype_data[, col], genotype_data[, col + 1]))
+
+    if(any(names(inc_missing) == "-999")){
+      exc_missing = inc_missing[-which(names(inc_missing) == "-999")]
+    } else {
+      exc_missing = inc_missing
+    }
+
+    df$Nallele[i] = length(exc_missing)
+
+    ## Save number of gene copies separately for each locus, excluding missing data
+    df$Ngenecopies[i] <- sum(exc_missing)
+    i = i + 1
   }
+
   names(df$Nallele) = df$loci_names
 
   return(df)
@@ -75,7 +103,7 @@ createSgsObj <- function(sample_ids,
 ## Alleles with no non-numeric characters in between
 # Only tested for diploid and 2d coordinate system
 
-readSpagedi <- function(path_to_spagedi_file){
+readSpagedi <- function(path_to_spagedi_file, missing_val = "-999"){
 
   lines <- readLines(path_to_spagedi_file) # Read lines in output file
   lines <- lines[-grep("^/", lines)] # Remove comment lines - start with / character
@@ -187,6 +215,11 @@ readSpagedi <- function(path_to_spagedi_file){
     if(ncol(split_gen_data) != (Nloci * Ploidy)){
       stop("Error in splitting genotype data.. number of columns do not match number of loci and ploidy level \n")
     }
+
+    ## Replace with -999 for missing values
+    missing_val = as.character(missing_val) ## In case it's inputted as a numeric
+    split_gen_data[split_gen_data == missing_val] <- -999
+
 
     ### Assemble sgsObj
     out <- createSgsObj(sample_ids = ids,

@@ -6,8 +6,8 @@
 using namespace Rcpp;
 
 // calcFijPairwiseCpp
-std::vector<float> calcFijPairwiseCpp(List ref_gen, NumericMatrix alfreq1, NumericMatrix alfreq2, int Nloci, NumericVector Nallele, int n);
-RcppExport SEXP sgsR_calcFijPairwiseCpp(SEXP ref_genSEXP, SEXP alfreq1SEXP, SEXP alfreq2SEXP, SEXP NlociSEXP, SEXP NalleleSEXP, SEXP nSEXP) {
+std::vector<float> calcFijPairwiseCpp(List ref_gen, NumericMatrix alfreq1, NumericMatrix alfreq2, int Nloci, NumericVector Nallele, NumericVector Ngenecopies);
+RcppExport SEXP sgsR_calcFijPairwiseCpp(SEXP ref_genSEXP, SEXP alfreq1SEXP, SEXP alfreq2SEXP, SEXP NlociSEXP, SEXP NalleleSEXP, SEXP NgenecopiesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -16,13 +16,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type alfreq2(alfreq2SEXP);
     Rcpp::traits::input_parameter< int >::type Nloci(NlociSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type Nallele(NalleleSEXP);
-    Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    __result = Rcpp::wrap(calcFijPairwiseCpp(ref_gen, alfreq1, alfreq2, Nloci, Nallele, n));
+    Rcpp::traits::input_parameter< NumericVector >::type Ngenecopies(NgenecopiesSEXP);
+    __result = Rcpp::wrap(calcFijPairwiseCpp(ref_gen, alfreq1, alfreq2, Nloci, Nallele, Ngenecopies));
     return __result;
 END_RCPP
 }
 // calcFijPopCpp
-NumericMatrix calcFijPopCpp(NumericMatrix Mcij, NumericMatrix Mdij, NumericVector distance_intervals, NumericMatrix genotype_data, List ref_gen, int Nloci, NumericVector Nallele, int Nind, int Ngenecopies, int Nperm, NumericVector x_coord, NumericVector y_coord);
+NumericMatrix calcFijPopCpp(NumericMatrix Mcij, NumericMatrix Mdij, NumericVector distance_intervals, NumericMatrix genotype_data, List ref_gen, int Nloci, NumericVector Nallele, int Nind, NumericVector Ngenecopies, int Nperm, NumericVector x_coord, NumericVector y_coord);
 RcppExport SEXP sgsR_calcFijPopCpp(SEXP McijSEXP, SEXP MdijSEXP, SEXP distance_intervalsSEXP, SEXP genotype_dataSEXP, SEXP ref_genSEXP, SEXP NlociSEXP, SEXP NalleleSEXP, SEXP NindSEXP, SEXP NgenecopiesSEXP, SEXP NpermSEXP, SEXP x_coordSEXP, SEXP y_coordSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
@@ -35,7 +35,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type Nloci(NlociSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type Nallele(NalleleSEXP);
     Rcpp::traits::input_parameter< int >::type Nind(NindSEXP);
-    Rcpp::traits::input_parameter< int >::type Ngenecopies(NgenecopiesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type Ngenecopies(NgenecopiesSEXP);
     Rcpp::traits::input_parameter< int >::type Nperm(NpermSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type x_coord(x_coordSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type y_coord(y_coordSEXP);
@@ -44,15 +44,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // calcAlleleFreqPop
-NumericVector calcAlleleFreqPop(NumericVector alleles_1, NumericVector alleles_2, int Nallele);
-RcppExport SEXP sgsR_calcAlleleFreqPop(SEXP alleles_1SEXP, SEXP alleles_2SEXP, SEXP NalleleSEXP) {
+NumericVector calcAlleleFreqPop(NumericVector alleles_1, NumericVector alleles_2, int Nallele, int Ngenecopies);
+RcppExport SEXP sgsR_calcAlleleFreqPop(SEXP alleles_1SEXP, SEXP alleles_2SEXP, SEXP NalleleSEXP, SEXP NgenecopiesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< NumericVector >::type alleles_1(alleles_1SEXP);
     Rcpp::traits::input_parameter< NumericVector >::type alleles_2(alleles_2SEXP);
     Rcpp::traits::input_parameter< int >::type Nallele(NalleleSEXP);
-    __result = Rcpp::wrap(calcAlleleFreqPop(alleles_1, alleles_2, Nallele));
+    Rcpp::traits::input_parameter< int >::type Ngenecopies(NgenecopiesSEXP);
+    __result = Rcpp::wrap(calcAlleleFreqPop(alleles_1, alleles_2, Nallele, Ngenecopies));
     return __result;
 END_RCPP
 }
