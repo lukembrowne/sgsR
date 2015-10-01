@@ -16,3 +16,11 @@ error.txt
 out.txt
 f16dispersedspagedi.txt
 README.Rmd
+
+out_bilsa_adults.txt
+
+man/hello.Rd
+
+man/rcpp_hello.Rd
+
+out_f1_ad.txt
