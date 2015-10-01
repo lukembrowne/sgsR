@@ -1,6 +1,6 @@
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 using namespace Rcpp;
-
+//[[Rcpp::depends(RcppArmadillo)]]
 
 // Declare functions
 std::vector<float> calcFijPairwiseCpp(List ref_gen,
@@ -27,6 +27,12 @@ NumericMatrix findDIs(NumericMatrix Mdij,
 NumericMatrix calcPairwiseDist(NumericVector x,
                                NumericVector y,
                                int Nind);
+
+
+NumericMatrix fitLM(NumericMatrix Mdij, // Return a 2d vector
+                    arma::cube Fij,
+                    int Nloci,
+                    int Nind);
 
 
 
@@ -128,7 +134,8 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
   NumericMatrix fijsummary((Nloci + 1) * 4, ndis); // Stores summary information of pairwise Fij
   NumericVector quant975(Nperm);
   NumericVector quant025(Nperm);
-
+  arma::cube fij_est_regr(Nind, Nind, Nloci); // 3d array to store Fij estimates to use for estimating slope of regression between pairwise distances and Fij
+  fij_est_regr.zeros(); // Initialize with zeros
 
   // Initialize matrices - fill them with 0s, or could cause problems later on
   for(int locus = 0; locus < (Nloci + 1); locus++) for(int di = 0; di < ndis; di++) {
@@ -251,6 +258,10 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
         int locus = 0; // Initialize before loop
         for (std::vector<float>::iterator k = fij.begin(); k != fij.end(); ++k){
 
+          // Save estimates in 3d array to later be used for estimating slope
+          // Includes missing data (-999)
+           fij_est_regr(i, j, locus) = *k;
+
           // Check for data missing at locus - if data is missing, skip to next locus without adding to results summary
           if(*k == -999){
             locus += 1;
@@ -269,6 +280,21 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
         } // End locus loop
 
       } // End loop through pairs of individuals
+
+
+      // Calculate slope of the regression between pairwise Fij and distance
+
+     NumericMatrix out(Nloci, 2);
+
+      out =     fitLM(Mdij,
+                     fij_est_regr,
+                      Nloci,
+                      Nind);
+
+      // function to print output
+      for(int i = 0; i < Nloci; i++){
+        Rcout << "Slope: " << out(i, 0) << " || Int:"<< out(i, 1) << "\n";
+      }
 
     } // End permutation loop
 
@@ -576,9 +602,110 @@ NumericMatrix summarizeDIs(NumericMatrix Mdij,
 
 
 
+// ***************************************************
+// ***************************************************
+// ****  FITTING A LINEAR MODEL TO PAIRWISE RELATEDNESS COEFFICIENTS AND DISTANCE
+// ***************************************************
+// ***************************************************
+
+// Returns a slope and intercept estimate
+/*
+// [[Rcpp::export]]
+std::vector<float> fitLM(NumericVector x,
+                         NumericVector y){
+
+  int N = x.size(); // Number of points
+  float SumX = 0;
+  float SumY = 0;
+  float SumX2 = 0;
+  float SumXY = 0;
+  float Xmean = 0;
+  float Ymean = 0;
+  float Slope = 0;
+  float Yint = 0;
+
+  std::vector<float> out(2, 0); // Initialize output
+
+  for(int i = 0; i < N; i++){ // Loop through points
+
+    SumX += x[i];
+    SumY += y[i];
+    SumX2 += x[i] * x[i]; // Sum of the squares of x values
+    SumXY += x[i] * y[i]; // Sum of product of x and y
+  }
+
+  Xmean = SumX / N;
+  Ymean = SumY / N;
+
+  Slope = (SumXY - SumX * Ymean) / (SumX2 - SumX * Xmean);
+
+  Yint = Ymean - Slope * Xmean;
+
+  out[0] = Slope;
+  out[1] = Yint;
+
+  return(out);
+}
+
+*/
 
 
+// Incorporate missing data
+
+NumericMatrix fitLM(NumericMatrix Mdij, // Return a 2d vector
+                     arma::cube Fij,
+                     int Nloci,
+                     int Nind){
+
+  int N = 0; // Number of points
+  float x = 0;
+  float y = 0;
+  float SumX = 0;
+  float SumY = 0;
+  float SumX2 = 0;
+  float SumXY = 0;
+  float Xmean = 0;
+  float Ymean = 0;
+  float Slope = 0;
+  float Yint = 0;
+
+  NumericMatrix out(Nloci, 2); // Initialize output
+
+  // Initialize output array
+  for(int locus = 0; locus < (Nloci + 1); locus++){
+    out(locus, 0) = 0;
+    out(locus, 0) = 1;
+  }
 
 
+  for(int locus = 0; locus < Nloci; locus++){ // Loop through loci
 
+    for(int i = 0; i < (Nind - 1) ; i++) for(int j = i+1; j <= (Nind - 1); j++){ // Loop through pairwise comparisions of individuals
+
+      x = Mdij(i, j);
+      y = Fij(i, j, locus);
+
+      SumX += x;
+      SumY += y;
+      SumX2 += x * x; // Sum of the squares of x values
+      SumXY += x * y; // Sum of product of x and y
+
+      N += 1;
+    } // End pairwise individuals loop
+
+    Xmean = SumX / N;
+    Ymean = SumY / N;
+
+    Slope = (SumXY - SumX * Ymean) / (SumX2 - SumX * Xmean);
+
+    Yint = Ymean - Slope * Xmean;
+
+    out(locus, 0) = Slope;
+    out(locus, 1) = Yint;
+
+
+  } // End locus loop
+
+  return(out);
+}
 
