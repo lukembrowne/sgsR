@@ -1,6 +1,7 @@
 #include <RcppArmadillo.h>
 using namespace Rcpp;
 //[[Rcpp::depends(RcppArmadillo)]]
+// Comment for Miles
 
 // Declare functions
 std::vector<float> calcFijPairwiseCpp(List ref_gen,
