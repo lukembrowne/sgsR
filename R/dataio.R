@@ -245,6 +245,87 @@ readSpagedi <- function(path_to_spagedi_file, missing_val = "-999"){
     return(out)
 }
 
+########
+##This function reads in a Genepop text input file and converts it to an sgsObj
+##File must be in correct Genepop format
+
+readGenepop <- function(path_to_genefile, missing_vals= '0000'){
+  lines <- readLines(path_to_genefile) #Reads in file, stores in lines
+  lines <- lines[-1] #Deletes title row
+  Ncoords= 0 #No spatial data included in Genepop file format
+  Ncats = 1 #Default 1 category
+  Ploidy= 2 #Assuming all individuals have ploidy of 2
+  lines <- lines[-grep('^P', lines)] #removes pop separators
+  dataz = strsplit(lines[4:length(lines)], split = ", |  ") #Need variable for 4, number of loci+1
+  Nind= length(dataz) #The total number of individuals in data set
+  Nloci=3
+  loci_names <- ''
+  catz<- ''
+  genotype_data = data.frame(rep(NA, Nind)) ## Initialize genotype data frame
+    if(Ncats > 0  & Ncoords == 0){
+      cat("No spatial information detected...\n")
+      loci_names = lines[1:3] #Need variable for 3
+      ids = sapply(dataz, "[[", 1) ## First column is id information
+      catz = sapply(dataz, "[[", 2) ## Category labels
+      ## Fill in genotype data
+      col2 = 1
+      for(col in 1:(length(dataz[[1]]))){
+        genotype_data[, col2] = sapply(dataz, "[[", col)
+        col2 = col2 + 1
+      }
+      
+    }
+
+
+  split_gen_dataz <- data.frame(rep(NA, Nind))
+
+  for(col in 1:ncol(genotype_data)){
+    
+    split_gen_dataz <- cbind(split_gen_dataz,
+                            split_alleles(genotype_data[, col], 2, Ploidy))#need Ndigits in place of 2
+  }
+  
+  # Remove first column of split gen_data (All Nas..)
+  split_gen_dataz <- split_gen_dataz[, -1]
+  
+  ## Convert to numeric
+  for(col in 1:ncol(split_gen_dataz)){
+    split_gen_dataz[, col] <- as.numeric(split_gen_dataz[, col])
+
+  }
+
+  ## Make sure number of columns matche up with Nloci and Ploidy
+  if(ncol(split_gen_dataz) != (Nloci * Ploidy)){
+    stop("Error in splitting genotype data.. number of columns do not match number of loci and ploidy level \n")
+  }
+  
+  ## Replace with 0000 for missing values
+  missing_vals = as.character(missing_vals) ## In case it's inputted as a numeric
+  split_gen_dataz[split_gen_dataz == missing_vals] <- 0000
+  
+
+  ### Assemble sgsObj
+  out <- createSgsObj(sample_ids = ids,
+                      groups = catz,
+                      genotype_data = split_gen_dataz,
+                      ploidy = Ploidy,
+                      loci_names = loci_names,
+                      x_coords = NULL,
+                      y_coords = NULL)
+  
+  
+ # return(out)
+  
+  }
+
+  
+  
+
+  
+
+
+  
+
 
 
 
