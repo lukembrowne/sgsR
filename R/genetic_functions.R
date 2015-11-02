@@ -87,6 +87,14 @@ sgs <- function(sgsObj,
 
   ## Returns a matrix with information on Fij estimates, permutation results, for each loci,
     # averaged across loci for each distance class
+    ## number of columns is equal to length of distance_intervals
+
+    ## Sets of data - each set is Nloci + 1 rows long
+      # 1) Fij - observed by distance class
+      # 2) Fij - Permutation average by distance class
+      # 3) Fij - 2.5% permutation quantile by distance class
+      # 4) Fij - 97.5% permutation quantile by distance class
+      # 5)
 
   fijsummary = calcFijPopCpp(genotype_data = as.matrix(sgsObj$gen_data_int),
                        distance_intervals = distance_intervals,
@@ -106,9 +114,11 @@ sgs <- function(sgsObj,
     rownames(fijsummary) <- c(sgsObj$loci_names, "ALL LOCI",
                         paste(sgsObj$loci_names, "_perm_avg", sep = ""), "ALL_LOCI_perm_avg",
                         paste(sgsObj$loci_names, "_perm_025", sep = ""), "ALL_LOCI_perm_025",
-                        paste(sgsObj$loci_names, "_perm_975", sep = ""), "ALL_LOCI_perm_975")
+                        paste(sgsObj$loci_names, "_perm_975", sep = ""), "ALL_LOCI_perm_975",
+                        paste(sgsObj$loci_names, "_sp", sep = ""), "ALL_LOCI_sp")
 
     sgsOut$Fijsummary <- fijsummary[1:(sgsObj$Nloci + 1), ]
+    sgsOut$Spsummary <- fijsummary[(sgsObj$Nloci*4 + 5):(sgsObj$Nloci*5 + 5), 1 ]
 
     if(nperm > 0){ # If permutation selected, add it to the output
       sgsOut$PermAvg <- fijsummary[(sgsObj$Nloci + 2):(sgsObj$Nloci*2 + 2), ]
