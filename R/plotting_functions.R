@@ -6,8 +6,8 @@
 # This function plots the amount of spatial autocorrelation in relatedness among the samples,
 # which is a typical graph made from these type of analyses
 
-plotSgs <- function(sgsOut, overlay = FALSE, color = "black",
-                    max_distance = NULL){
+plot.sgsOut <- function(sgsOut, overlay = FALSE, color = "black",
+                    max_distance = NULL, ...){
 
   # Check to make sure input is the right class
   if(!is(sgsOut, "sgsOut")){
@@ -15,8 +15,8 @@ plotSgs <- function(sgsOut, overlay = FALSE, color = "black",
   }
 
     ## Set values
-    estimate <- sgsOut$Fijsummary["ALL LOCI",] ## Save relatedness estimate
-    dist <- sgsOut$DIsummary["Max distance", ] ## Save max distance intervals
+    estimate <- sgsOut$fij_obs["ALL LOCI",] ## Save relatedness estimate
+    dist <- sgsOut$di["Max distance", ] ## Save max distance intervals
 
     conf_hi = 0 # Placeholders
     conf_low = 0
@@ -24,10 +24,10 @@ plotSgs <- function(sgsOut, overlay = FALSE, color = "black",
     if(is.null(max_distance)) max_distance = max(dist) # If max distance not set, set it
 
     ## Saving permutation results
-    if(!is.null(sgsOut$PermAvg)){ # If permutation results found, continue..
+    if(!is.null(sgsOut$fij_perm_avg)){ # If permutation results found, continue..
 
-      conf_hi <- sgsOut$Perm975["ALL_LOCI_perm_975",]
-      conf_low <- sgsOut$Perm025["ALL_LOCI_perm_025",]
+      conf_hi <- sgsOut$fij_perm_975["ALL_LOCI_perm_975",]
+      conf_low <- sgsOut$fij_perm_025["ALL_LOCI_perm_025",]
 
     }
 
@@ -57,7 +57,5 @@ plotSgs <- function(sgsOut, overlay = FALSE, color = "black",
     }
 
   } ## End plotting function
-
-
 
 

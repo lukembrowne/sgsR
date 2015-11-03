@@ -2,17 +2,74 @@
 ##### Building basic data structure - sgsObj
 ###########
 
-### sgsObj is the data structure that will hold all the information necessary for the sgs analysis
-# It includes the genotype data, the location data, information about ploidy, groups, names of loci
-# Can be created from scratch through the function below, or by reading in text input files created by other programs
-
+#' Create basic data structure for sgs analysis
+#'
+#'This function creates the basic data structure that will hold all the information necessary for sgs analyses - an object of the class sgsObj. It includes genotype data, spatial data, information about ploidy, groups, names of loci, etc.
+#' sgsObjs can be created from scratch through the function below, or by reading in text input files created by other programs using the \code{\link{readSpagedi}} and \code{\link{readGenepop }} functions
+#'
+#' @param sample_ids A vector of numbers or names giving individual IDs of samples.
+#' @param genotype_data A matrix or dataframe with genetic data. See details for more information.
+#' @param x_coords A numeric vector with X coordinates of samples.
+#' @param y_coords A numeric vector with Y coordinates of samples.
+#' @param missing_val Numeric or character value indicating value used for missing data. Default is -999.
+#' @param groups An optional vector of  of grouping classfication. \emph{Note:} Analyses on groups have not been implemented yet.
+#' @param ploidy Ploidy level. \emph{Note:} Analyses have only been tested with ploidy = 2.
+#' @param loci_names Optional vector of loci names.
+#'
+#'@section Details:
+#'
+#'\emph{\strong{Genotype data structure}}
+#'
+#'Genotype data should be formatted as a dataframe or matrix with individual samples as rows and loci as columns. Each locus should have two columns (in the case of diploid organisms), and these pairs of columns should be adjacent to each other.
+#'
+#'\tabular{rrrrrr}{
+#'  Loc1_A \tab Loc1_B \tab Loc2_A \tab Loc2_B \tab Loc3_A \tab Loc3_B \cr
+#' 1 \tab 0 \tab 7 \tab 0 \tab 1 \tab 0 \cr
+#' 2 \tab 3 \tab 4 \tab 5 \tab 4 \tab 1 \cr
+#' 3 \tab 2 \tab 2 \tab 3 \tab 2 \tab 4 \cr
+#' 2 \tab 1 \tab 1 \tab 2 \tab 2 \tab 2 \cr
+#' }
+#' @return
+#'
+#' Returns an object of the class sgsObj.
+#' @export
+#'
+#' @examples
+#'
+#' ## Simulate genetic data
+#' Nind = 100 # Number of individuals
+#' Nloci = 5 # Number of loci
+#' Nallele = 10 # Number of alleles per loci
+#'
+#' ## Set up data frame and generate random spatial locations
+#' dat <- data.frame(id = 0:(Nind - 1))
+#' dat$x = runif(Nind, 0, 100)
+#' dat$y = runif(Nind, 0, 100)
+#'
+#' ## Simulate Random genetic data and assign loci names
+#' for (loci in 1:Nloci) {
+#'  loci_name_a = paste("Loc", loci, "_A", sep = "")
+#'  loci_name_b = paste("Loc", loci, "_B", sep = "")
+#'  dat[loci_name_a] <- sample.int(Nallele, Nind, replace = TRUE)
+#'  dat[loci_name_b] <- sample.int(Nallele, Nind, replace = TRUE)
+#'}
+#'
+#' ## Convert to sgsObj
+#' sgsObj = createSgsObj(sample_ids = dat$id,
+#'                      genotype_data = dat[, 4:(Nloci*2 + 3)],
+#'                      ploidy = 2,
+#'                      x_coords = dat$x,
+#'                      y_coords = dat$y)
+#'attributes(sgsObj)
 createSgsObj <- function(sample_ids,
+                         genotype_data,
+                         x_coords,
+                         y_coords,
+                         missing_val = -999,
                         groups = NULL,
-                        genotype_data,
-                        ploidy,
-                        loci_names = NULL,
-                        x_coords,
-                        y_coords){
+                        ploidy = 2,
+                        loci_names = NULL
+                        ){
 
   ### Run checks to make sure that inputs are the proper format
 
@@ -33,7 +90,7 @@ createSgsObj <- function(sample_ids,
 
   # Set genetic data and loci names
   df$gen_data <- genotype_data
-  if(is.null(loci_names)) df$loci_names <- colnames(genotype_data)[seq(1, Nloci*2, 2)]
+  if(is.null(loci_names)) df$loci_names <- colnames(genotype_data)[seq(1, df$Nloci*2, 2)]
   if(!is.null(loci_names)) df$loci_names <- loci_names
 
     # Format genetic data so that uses integers instead of raw numbers,
@@ -83,6 +140,13 @@ createSgsObj <- function(sample_ids,
     i = i + 1
   }
 
+  ## Add column names to genotype data
+
+  colnames(df$gen_data)<- colnames(genotype_data)
+  colnames(df$gen_data_int) <- colnames(genotype_data)
+
+
+
   names(df$Nallele) = df$loci_names
 
   return(df)
@@ -97,12 +161,47 @@ createSgsObj <- function(sample_ids,
 ##### Read spagedi input file and convert to sgsObj
 ###########
 
-## This function reads in a spagedi text input file and converts it to an sgsObj
-
-## Make it clear that data should follow format in example Spagedi data..
-## Alleles with no non-numeric characters in between
-# Only tested for diploid and 2d coordinate system
-
+#' Read SPAGeDi input from file and convert to sgsObj object
+#'
+#' This function reads a SPAGeDi formatted text file (tab delimited text) and converts it to an sgsObj.
+#'
+#' @param path_to_spagedi_file A file path pointing to SPAGeDi input file. Must point to a tab delimited text file in following format in SPAGeDi manual (see details below).
+#' @param missing_val Value indidicating missing data. Default is -999
+#'
+#' @return An object of the class sgsObj, which is used for futher sgs analyses.
+#' @export
+#'
+#'@section Details:
+#'
+#'SPAGeDi (Spatial Pattern Analysis of Genetic Diversity) is a popular program for calculating spatial genetic structure, among other things. More information about SPAGeDi can be found at their hompage \href{http://ebe.ulb.ac.be/ebe/SPAGeDi.html}{here}.
+#'
+#'Data format should follow the style described in section 3.1 of the SPAGeDi manual.
+#'
+#'File should be a tab delimited text file.
+#'
+#'Briefly, the first line is a series of 6 numbers separated by tabs: number of individuals, number of categories, number of spatial coordinates, number of loci, number of digits used to code one allele, and ploidy.
+#'
+#'The second line indicates the distance intervals (which can be changed after inputting file).
+#'
+#'The third line lists the column names for individuals, categories, spatial coordinates, and loci.
+#'
+#'The fourth line begins the sample ID, category, spatial coordinate, and genotype data, with each line representing an individual.
+#'
+#'END is entered in the line after the last individual.
+#'
+#'\emph{Note:} This function as been tested only for diploid genetic data in 2d coordinate systems.
+#'
+#'
+#' @examples
+#'## Read in example data provided with package
+#' path_to_example_data <- system.file("extdata", "obataua_spagedi.txt", package = "sgsR")
+#'
+#'## Use readSpagedi to read and convert data to sgsObj
+#' dat <- readSpagedi(path_to_example_data, missing_val = "0")
+#'
+#' dat
+#'
+#'
 readSpagedi <- function(path_to_spagedi_file, missing_val = "-999"){
 
   lines <- readLines(path_to_spagedi_file) # Read lines in output file
@@ -219,6 +318,15 @@ readSpagedi <- function(path_to_spagedi_file, missing_val = "-999"){
     ## Replace with -999 for missing values
     missing_val = as.character(missing_val) ## In case it's inputted as a numeric
     split_gen_data[split_gen_data == missing_val] <- -999
+
+    ## Fancy up column names for genotype data
+    n_cols <- ncol(split_gen_data)
+    new_col_names <- rep(NA, n_cols)
+
+    new_col_names[seq(1, n_cols, 2)] <- paste(loci_names, "_A", sep = "")
+    new_col_names[seq(2, n_cols, 2)] <- paste(loci_names, "_B", sep = "")
+
+    colnames(split_gen_data) <- new_col_names
 
 
     ### Assemble sgsObj

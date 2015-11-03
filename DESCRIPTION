@@ -6,12 +6,10 @@ Date: 2015-08-20
 Author: person("Luke", "Browne", email = "lukembrowne@gmail.com",
                   role = c("aut", "cre"))
 Maintainer: Luke Browne <lukembrowne@gmail.com>
-Description: Spatial genetic structure analyses in R
+Description: This package provides basic functions for spatial genetic structure analyses in R.
 License: GPL (>= 2)
 LazyData: TRUE
 Imports:
-    Rcpp (>= 0.12.0),
-    RcppArmadillo (>= 0.5.0)
 LinkingTo:
     Rcpp, RcppArmadillo
 Suggests: testthat
