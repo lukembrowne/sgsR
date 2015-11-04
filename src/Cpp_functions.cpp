@@ -215,9 +215,9 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
   for(int perm = 0; perm < (Nperm + 1); perm++){ // Loop through observed (perm = 0) and then total number of permutations
 
     // Print status update on how far along we are in the permutations..
-    if(perm % 100 == 0 ){
+   // if(perm % 100 == 0 ){
       Rcpp::Rcout << "Working on permutation: " << perm << "... \n";
-    }
+  //  }
 
       // Randomizing spatial locations among individuals
       if(perm > 0){ // Skip if it's the first permutation and use observed Mdij and Mcij
@@ -672,22 +672,10 @@ NumericMatrix summarizeDIs(NumericMatrix Mdij,
 // First column is slope, second column is intercept
 // Rows are loci
 
-NumericMatrix fitLM(NumericMatrix Mdij, // Return a 2d vector
+NumericMatrix fitLM(NumericMatrix Mdij,
                      arma::cube Fij,
                      int Nloci,
                      int Nind){
-
-  int N = 0; // Number of points
-  float x = 0;
-  float y = 0;
-  float SumX = 0;
-  float SumY = 0;
-  float SumX2 = 0;
-  float SumXY = 0;
-  float Xmean = 0;
-  float Ymean = 0;
-  float Slope = 0;
-  float Yint = 0;
 
   NumericMatrix out(Nloci, 2); // Initialize output
 
@@ -699,6 +687,20 @@ NumericMatrix fitLM(NumericMatrix Mdij, // Return a 2d vector
 
 
   for(int locus = 0; locus < Nloci; locus++){ // Loop through loci
+
+    // Need to re-initialize variables after each locus loop or values will carry over,
+    // causing a weird bug where subsequent loci have lower and lower slopes and Sp values
+    int N = 0; // Number of points
+    float x = 0;
+    float y = 0;
+    float SumX = 0;
+    float SumY = 0;
+    float SumX2 = 0;
+    float SumXY = 0;
+    float Xmean = 0;
+    float Ymean = 0;
+    float Slope = 0;
+    float Yint = 0;
 
     for(int i = 0; i < (Nind - 1) ; i++) for(int j = i+1; j <= (Nind - 1); j++){ // Loop through pairwise comparisions of individuals
 
@@ -721,6 +723,8 @@ NumericMatrix fitLM(NumericMatrix Mdij, // Return a 2d vector
 
     Xmean = SumX / N;
     Ymean = SumY / N;
+
+   //Rcout << "Printing N in fitLM function: " << N << "\n";
 
     Slope = (SumXY - SumX * Ymean) / (SumX2 - SumX * Xmean);
 
