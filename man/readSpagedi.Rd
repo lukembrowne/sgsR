@@ -39,8 +39,10 @@ END is entered in the line after the last individual.
 \emph{Note:} This function as been tested only for diploid genetic data in 2d coordinate systems.
 }
 \examples{
+## Read in example data provided with package
 path_to_example_data <- system.file("extdata", "obataua_spagedi.txt", package = "sgsR")
 
+## Use readSpagedi to read and convert data to sgsObj
 dat <- readSpagedi(path_to_example_data, missing_val = "0")
 
 dat

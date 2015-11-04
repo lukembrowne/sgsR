@@ -10,6 +10,16 @@
 
 # Returns an sgsOut object that holds summary information about the results of the analysis
 
+#' Title
+#'
+#' @param sgsObj
+#' @param distance_intervals
+#' @param nperm
+#'
+#' @return 1
+#' @export
+#'
+#' @examples 1
 sgs <- function(sgsObj,
                 distance_intervals,
                 nperm = 999){
