@@ -87,7 +87,7 @@ sgs <- function(sgsObj,
 
     ## Check to make sure allele frequencies at each locus sum to one
     if(any(sapply(ref_gen, sum) != 1)){
-      stop("Reference allele frequencies do not sum to 1... \n")
+      warning("Reference allele frequencies do not sum to 1... \n")
     }
 
 

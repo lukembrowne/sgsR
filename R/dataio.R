@@ -145,6 +145,27 @@ createSgsObj <- function(sample_ids,
   colnames(df$gen_data)<- colnames(genotype_data)
   colnames(df$gen_data_int) <- colnames(genotype_data)
 
+  ## Look for loci that only have one allele and remove from dataframe
+
+  rem_locus <- which(df$Nallele == 1)
+
+  if(length(rem_locus) > 0 ){
+        cat("Removing locus -- ", df$loci_names[rem_locus],
+            "-- because it only has one allele. \n")
+
+    # Find column index
+        col_locus <- match(df$loci_names[rem_locus], colnames(df$gen_data))
+        print(col_locus)
+
+          # Remove from datasets
+        df$gen_data <- df$gen_data[, - c(col_locus, col_locus + 1)]
+        df$gen_data_int <- df$gen_data_int[, - c(col_locus, col_locus + 1)]
+        df$Nallele <- df$Nallele[-rem_locus]
+        df$loci_names <- df$loci_names[-rem_locus]
+        df$Ngenecopies <- df$Ngenecopies[-rem_locus]
+        df$Nloci = df$Nloci - length(rem_locus)
+  }
+
 
 
   names(df$Nallele) = df$loci_names

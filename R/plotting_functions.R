@@ -35,7 +35,7 @@ plot.sgsOut <- function(sgsOut, overlay = FALSE, color = "black",
       par(new = TRUE)
       points(dist, estimate, type = "b", pch = 19, xlab = "", ylab = "",
              yaxt = "n", xaxt = "n", col = color, lwd = 2, lty = 1)
-      if(!is.null(conf_hi)){
+      if(!is.null(sgsOut$fij_perm_avg)){
         lines(dist, conf_hi, lty = 4, col = color)
         lines(dist, conf_low, lty = 4, col = color)
       }
@@ -50,7 +50,7 @@ plot.sgsOut <- function(sgsOut, overlay = FALSE, color = "black",
            xlim = c(0, max_distance), col = color)
       abline(h = 0, lty = 1, col = "grey50") # Horizontal line where relatedness = 0
 
-      if(!is.null(conf_hi)){ ## Add permutation lines
+      if(!is.null(sgsOut$fij_perm_avg)){ ## Add permutation lines
          lines(dist, conf_hi, lty = 4, col = color)
          lines(dist, conf_low, lty = 4, col = color)
        }

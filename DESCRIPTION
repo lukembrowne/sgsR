@@ -10,6 +10,8 @@ Description: This package provides basic functions for spatial genetic structure
 License: GPL (>= 2)
 LazyData: TRUE
 Imports:
+    Rcpp,
+    RcppArmadillo
 LinkingTo:
     Rcpp, RcppArmadillo
 Suggests: testthat
