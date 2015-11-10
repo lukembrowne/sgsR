@@ -82,19 +82,52 @@ createSgsObj <- function(sample_ids,
     i = i + 1
   }
 
-  #Calculates missing % of data
+  #Calculates missing % of data for all loci
   missingsum= sum(df$gen_data_int== -999)
   missingpercent= (missingsum / ((ncol(df$gen_data_int))*nrow(df$gen_data_int)))*100
   cat("This data is missing ", missingpercent ,"% of loci data \n")
 
   
+  #Calculates missing % of data per locus
+  xy=1
+  for(col in seq(1, df$Nloci * df$ploidy, df$ploidy)){
+    missingsumper= sum(df$gen_data_int[,col]== -999)+sum(df$gen_data_int[,col+1]== -999)
+    missingpercentper= (missingsumper/(nrow(df$gen_data_int))*100)
+    cat("Locus: ", loci_names[xy], " is missing ", missingpercentper, "% of locus data \n")
+    xy= xy+1
+  }
+  
   names(df$Nallele) = df$loci_names
+  
+
 
   return(df)
+  
+
 
 }
 
-
+summary.sgsObj <- function(x){
+  #Number of individuals: 
+  #Number of categories: 
+  #Number of loci: 
+  #Number of alleles per loci
+  #Number of gene copies per loci
+  #Missing data per Locus
+  cat("Number of individuals: ", x$Nind, "\n")
+  cat("Number of categories: ", length(unique(x$groups)), "\n")
+  cat("Number of loci: ",x$Nloci, "\n" )
+  cat("Number of alleles per locus: ", x$Nallele, "\n")
+  cat("Number of gene copies per loci: ",x$Ngenecopies ,"\n")
+  xz=1
+  for(col in seq(1, x$Nloci * x$ploidy, x$ploidy)){
+    missingsumper= sum(x$gen_data_int[,col]== -999)+sum(x$gen_data_int[,col+1]== -999)
+    missingpercentper= (missingsumper/(nrow(x$gen_data_int))*100)
+    cat("Locus: ", loci_names[xz], " is missing ", missingpercentper, "% of locus data \n")
+    xz= xz+1
+  }
+  summary(out)
+}
 
 
 
