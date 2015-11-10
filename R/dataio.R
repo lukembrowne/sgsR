@@ -41,7 +41,7 @@ createSgsObj <- function(sample_ids,
 
     # Exclude missing data!
   df$gen_data_int = df$gen_data
-
+  
   for(col in seq(1, df$Nloci * df$ploidy, df$ploidy)){
 
     ## Save indices of missing data, should be same for both columns of the locus
@@ -63,7 +63,6 @@ createSgsObj <- function(sample_ids,
     df$gen_data_int[miss_ind, col + 1] <- -999
   }
 
-
   # Find max number of alleles across all loci
   i = 1
   for(col in seq(1, df$Nloci * df$ploidy, df$ploidy)){
@@ -83,6 +82,12 @@ createSgsObj <- function(sample_ids,
     i = i + 1
   }
 
+  #Calculates missing % of data
+  missingsum= sum(df$gen_data_int== -999)
+  missingpercent= (missingsum / ((ncol(df$gen_data_int))*nrow(df$gen_data_int)))*100
+  cat("This data is missing ", missingpercent ,"% of loci data \n")
+
+  
   names(df$Nallele) = df$loci_names
 
   return(df)
