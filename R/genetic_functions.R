@@ -10,6 +10,16 @@
 
 # Returns an sgsOut object that holds summary information about the results of the analysis
 
+#' Title
+#'
+#' @param sgsObj
+#' @param distance_intervals
+#' @param nperm
+#'
+#' @return 1
+#' @export
+#'
+#' @examples 1
 sgs <- function(sgsObj,
                 distance_intervals,
                 nperm = 999){
@@ -22,6 +32,7 @@ sgs <- function(sgsObj,
   ## Set up output data structure
   sgsOut <- structure(list(), class = "sgsOut")
 
+  sgsOut$sgsObj <- sgsObj
 
   #####
   ## DISTANCE INTERVALS
@@ -51,8 +62,10 @@ sgs <- function(sgsObj,
       rownames(DIsummary) <- c("Distance class", "Max distance", "Average distance",
                                "Number of pairs")
 
-      sgsOut$DIsummary <- DIsummary ## Save summary information about distance intervals
+      sgsOut$di <- DIsummary ## Save summary information about distance intervals
 
+      ## Add column names to di output
+      colnames(sgsOut$di) <- paste("D", 1:length(distance_intervals), sep = "")
 
   #####
   ## REFERENCE ALLELE FREQUENCY
@@ -74,7 +87,7 @@ sgs <- function(sgsObj,
 
     ## Check to make sure allele frequencies at each locus sum to one
     if(any(sapply(ref_gen, sum) != 1)){
-      stop("Reference allele frequencies do not sum to 1... \n")
+      warning("Reference allele frequencies do not sum to 1... \n")
     }
 
 
@@ -87,6 +100,15 @@ sgs <- function(sgsObj,
 
   ## Returns a matrix with information on Fij estimates, permutation results, for each loci,
     # averaged across loci for each distance class
+    ## number of columns is equal to length of distance_intervals
+
+    ## Sets of data - each set is Nloci + 1 rows long
+      # 1) Fij - observed by distance class
+      # 2) Fij - Permutation average by distance class
+      # 3) Fij - 2.5% permutation quantile by distance class
+      # 4) Fij - 97.5% permutation quantile by distance class
+      # 5) Sp - observed values - only first column
+      # 6) Slope - observed values - only first clumn
 
   fijsummary = calcFijPopCpp(genotype_data = as.matrix(sgsObj$gen_data_int),
                        distance_intervals = distance_intervals,
@@ -106,15 +128,27 @@ sgs <- function(sgsObj,
     rownames(fijsummary) <- c(sgsObj$loci_names, "ALL LOCI",
                         paste(sgsObj$loci_names, "_perm_avg", sep = ""), "ALL_LOCI_perm_avg",
                         paste(sgsObj$loci_names, "_perm_025", sep = ""), "ALL_LOCI_perm_025",
-                        paste(sgsObj$loci_names, "_perm_975", sep = ""), "ALL_LOCI_perm_975")
+                        paste(sgsObj$loci_names, "_perm_975", sep = ""), "ALL_LOCI_perm_975",
+                        paste(sgsObj$loci_names, "_sp", sep = ""), "ALL_LOCI_sp",
+                        paste(sgsObj$loci_names, "_slope", sep = ""), "ALL_LOCI_slope")
 
-    sgsOut$Fijsummary <- fijsummary[1:(sgsObj$Nloci + 1), ]
+    ## Add column names to fijsummary
+    colnames(fijsummary) <- paste("D", 1:length(distance_intervals), sep = "")
+
+    ## Subset out specific sections
+    sgsOut$fij_obs <- fijsummary[1:(sgsObj$Nloci + 1), ]
+
+    sgsOut$sp_obs <- fijsummary[(sgsObj$Nloci*4 + 5):(sgsObj$Nloci*5 + 5), 1, drop = FALSE ]
+    colnames(sgsOut$sp_obs) <- c("Observed")
+    sgsOut$slope_obs <- fijsummary[(sgsObj$Nloci*5 + 6):(sgsObj$Nloci*6 + 6), 1, drop = FALSE ]
+    colnames(sgsOut$slope_obs) <- c("Observed")
 
     if(nperm > 0){ # If permutation selected, add it to the output
-      sgsOut$PermAvg <- fijsummary[(sgsObj$Nloci + 2):(sgsObj$Nloci*2 + 2), ]
-      sgsOut$Perm025 <- fijsummary[(sgsObj$Nloci*2 + 3):(sgsObj$Nloci*3 + 3), ]
-      sgsOut$Perm975<- fijsummary[(sgsObj$Nloci*3 + 4):(sgsObj$Nloci*4 + 4), ]
+      sgsOut$fij_perm_avg <- fijsummary[(sgsObj$Nloci + 2):(sgsObj$Nloci*2 + 2), ]
+      sgsOut$fij_perm_025 <- fijsummary[(sgsObj$Nloci*2 + 3):(sgsObj$Nloci*3 + 3), ]
+      sgsOut$fij_perm_975<- fijsummary[(sgsObj$Nloci*3 + 4):(sgsObj$Nloci*4 + 4), ]
     }
+
 
   ## Output a summary table with distance classes, Fij estimates, permutation results, etc
    return(sgsOut)
