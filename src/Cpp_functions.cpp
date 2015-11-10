@@ -1,7 +1,6 @@
 #include <RcppArmadillo.h>
 using namespace Rcpp;
 //[[Rcpp::depends(RcppArmadillo)]]
-// Comment for Miles
 
 // Declare functions
 std::vector<float> calcFijPairwiseCpp(List ref_gen,
@@ -47,11 +46,11 @@ NumericMatrix fitLM(NumericMatrix Mdij, // Return a 2d vector
 
 // [[Rcpp::export]]
 std::vector<float> calcFijPairwiseCpp(List ref_gen,
-                         NumericMatrix alfreq1,
-                         NumericMatrix alfreq2,
-                         int Nloci,
-                         NumericVector Nallele,
-                         NumericVector Ngenecopies){
+                                       NumericMatrix alfreq1,
+                                       NumericMatrix alfreq2,
+                                       int Nloci,
+                                       NumericVector Nallele,
+                                       NumericVector Ngenecopies){
 
   float denom[Nloci];
   float numer[Nloci];
@@ -65,7 +64,6 @@ std::vector<float> calcFijPairwiseCpp(List ref_gen,
   }
 
   for(int locus = 0;  locus < Nloci; ++locus){ // Loop through loci
-
 
     // If data is missing at the locus for either individual, there will be a -999 at the [0]
     // of the alfreq table. Can use this an a signal to skip calculating Fij for that locus
@@ -85,13 +83,18 @@ std::vector<float> calcFijPairwiseCpp(List ref_gen,
 
           denom[locus] += ref_gen_loc[allele] * (1 - ref_gen_loc[allele]);
 
+          // Rcout << "ref_gen_loc:" << ref_gen_loc[allele] << "  Locus: " << locus << "  Allele:" <<allele << "\n";
+
       } // End allele loop
 
     } // End else statement
 
     fij[locus] = numer[locus] / denom[locus]; // Calculate Fij per locus.. should equal -999 for missing data
 
+    //Rcout << "Fij estimate from pairwise function:" << fij[locus] << "\n";
   } // End loci loop
+
+
 
   return(fij);
 }
@@ -127,12 +130,14 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
   float ind_al_freq[Nloci][MNallele][Nind]; // 3d array that saves allele freq for each individual
   int ndis = distance_intervals.size(); // Number of distance intervals
   float perm_results[Nloci + 1][ndis][Nperm + 1]; // 3d array that saves permuted results
+  float lm_results[Nloci + 1][2][Nperm + 1]; // 3d array that saves permuted linear regression results - first column is slope, second column is intercept
+  float sp_results[Nloci+1][Nperm+1]; // 2d array to save Sp statistic
   int perm_results_npairs[Nloci + 1][ndis][Nperm + 1]; // 3d array that saves permuted results
   int row = 0; // Needed for loop through 3d array
   std::vector<float> fij(Nloci);
   NumericMatrix  alfreq1(Nloci, MNallele);
   NumericMatrix  alfreq2(Nloci, MNallele);
-  NumericMatrix fijsummary((Nloci + 1) * 4, ndis); // Stores summary information of pairwise Fij
+  NumericMatrix fijsummary((Nloci + 1) * 6, ndis); // Stores summary information of pairwise Fij .. *5 is based on many types of information it is outputting
   NumericVector quant975(Nperm);
   NumericVector quant025(Nperm);
   arma::cube fij_est_regr(Nind, Nind, Nloci); // 3d array to store Fij estimates to use for estimating slope of regression between pairwise distances and Fij
@@ -147,6 +152,8 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
      for(int perm = 0; perm < (Nperm + 1); perm++){
       perm_results[locus][di][perm] = 0;
       perm_results_npairs[locus][di][perm] = 0;
+      lm_results[locus][2][perm] = 0;
+      sp_results[locus][perm] = 0;
      }
    }
 
@@ -208,9 +215,9 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
   for(int perm = 0; perm < (Nperm + 1); perm++){ // Loop through observed (perm = 0) and then total number of permutations
 
     // Print status update on how far along we are in the permutations..
-    if(perm % 100 == 0 ){
+   // if(perm % 100 == 0 ){
       Rcpp::Rcout << "Working on permutation: " << perm << "... \n";
-    }
+  //  }
 
       // Randomizing spatial locations among individuals
       if(perm > 0){ // Skip if it's the first permutation and use observed Mdij and Mcij
@@ -284,27 +291,67 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
 
 
       // Calculate slope of the regression between pairwise Fij and distance
+        // Returns a slope and intercept estimate for each locus
+        // First column is slope, second column is intercept
+        // Rows are loci
 
-     NumericMatrix out(Nloci, 2);
+     NumericMatrix out_lm(Nloci, 2);
 
-      out =     fitLM(Mdij,
-                     fij_est_regr,
-                      Nloci,
-                      Nind);
+      out_lm =     fitLM(Mdij,
+                         fij_est_regr,
+                         Nloci,
+                         Nind);
 
+      // Save results into 3d array lm_results
+      // 0 index is OBSERVED
+      // Last row is average across loci
+
+      for(int locus = 0; locus < Nloci; locus++) {// loop over loci
+       lm_results[locus][0][perm] = out_lm(locus, 0); // First column is slope
+       lm_results[locus][1][perm] = out_lm(locus, 1); // First column is intercept
+       lm_results[Nloci][0][perm] += out_lm(locus, 0); // Save last row as average across loci
+       lm_results[Nloci][1][perm] += out_lm(locus, 1); // Save last row as average across loci
+      }
+
+      // Calculate average slope and intercept across loci
+      lm_results[Nloci][0][perm] = lm_results[Nloci][0][perm] / Nloci;
+      lm_results[Nloci][1][perm] = lm_results[Nloci][1][perm] / Nloci;
+
+      if(perm == 0){
       // function to print output
       for(int i = 0; i < Nloci; i++){
-        Rcout << "Slope: " << out(i, 0) << " || Int:"<< out(i, 1) << "\n";
+       // Rcout << "Slope lm res: " << lm_results[i][0][perm] << " || Int:"<< lm_results[i][1][perm] << "\n";
+      }
+      }
+      // Calculate Sp statistic from lm_results
+      // Formula is -b / (1 - F1), where b is slope of the regression of distance on Fij and
+      // and F1 is the mean Fij betweeen individuals belonging to the first distance interval that
+      // should include all pairs of neighbors
+
+      for(int locus = 0; locus <= Nloci; locus++){  // Note that locus <= Nloci in loop to calculate for average across loci as well
+
+        sp_results[locus][perm] = -(lm_results[locus][0][perm]) / (1 - perm_results[locus][0][perm]/perm_results_npairs[locus][0][perm]); // Zero indexing on perm results is for values in the first distance class
+     // if(perm == 0 ) {
+       // Rcout << "Sp res on perm:" << perm << " :: " << sp_results[locus][perm] << "\n";
+      //  Rcout << "Perm results " <<perm_results[locus][0][perm]/perm_results_npairs[locus][0][perm]<< "\n";
+    //  }
+
+
       }
 
     } // End permutation loop
 
 
+
   //Calculate average Fij per locus by dividing sum by total pairs
   // Note that locus <= Nloci in loop to calculate for average across loci as well
    for(int locus = 0; locus <= Nloci; locus++) for(int di = 0; di < ndis; di++) for(int perm = 0; perm < (Nperm + 1); perm++){
+
       perm_results[locus][di][perm] = perm_results[locus][di][perm] / perm_results_npairs[locus][di][perm];
+
    }
+
+
 
    // Save out to summary matrix
    for(int locus = 0; locus <= Nloci; locus++) for(int di = 0; di < ndis; di++){
@@ -315,7 +362,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
      for(int perm = 1; perm < (Nperm + 1); perm++){ // Start perm at 1 to not overwrite observed values
 
        fijsummary(locus + Nloci + 1, di) += perm_results[locus][di][perm];
-       fijsummary(Nloci + Nloci + 1, di) += perm_results[Nloci][di][perm]; // Sum across loci
+       fijsummary(Nloci + Nloci + 1, di) += perm_results[Nloci][di][perm]; // Average across loci
 
        // Save values to calculate 95% quantiles
        quant975[perm-1] = perm_results[locus][di][perm]; // -1 index bc perm is looping starting on perm = 1
@@ -335,12 +382,24 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
 
    } // End locus and di loop
 
+    // Averaging permutation results
    for(int locus = 0; locus <= Nloci; locus++) for(int di = 0; di < ndis; di++){
      fijsummary(locus + Nloci + 1, di) = fijsummary(locus + Nloci + 1, di) / Nperm; // Take avg based on permutation
-     fijsummary(Nloci + Nloci + 1, di) = fijsummary(Nloci + Nloci + 1, di) / Nperm;
+    if(locus == 0)  fijsummary(Nloci + Nloci + 1, di) = fijsummary(Nloci + Nloci + 1, di) / Nperm; // Only do this once or average value will be really really small! Because you are dividing by Nperm over and over again..
    }
 
-   // Save out summary information of permuted results
+
+   // Save observed Sp statistics &&
+   // Save observed Slope of regression on Fij and distance
+
+   // Only first column will have information... rest of the data will be nonsense because we don't calculate Sp for each distance interval
+   for(int locus = 0; locus <= Nloci; locus++){
+     fijsummary(locus + Nloci*4 + 4, 0) = sp_results[locus][0];
+     fijsummary(locus + Nloci*5 + 5, 0) = lm_results[locus][0][0]; // First zero is for first column = slope
+   }
+
+
+
    return(fijsummary);
 
 }
@@ -609,82 +668,50 @@ NumericMatrix summarizeDIs(NumericMatrix Mdij,
 // ***************************************************
 // ***************************************************
 
-// Returns a slope and intercept estimate
-/*
-// [[Rcpp::export]]
-std::vector<float> fitLM(NumericVector x,
-                         NumericVector y){
+// Returns a slope and intercept estimate for each locus
+// First column is slope, second column is intercept
+// Rows are loci
 
-  int N = x.size(); // Number of points
-  float SumX = 0;
-  float SumY = 0;
-  float SumX2 = 0;
-  float SumXY = 0;
-  float Xmean = 0;
-  float Ymean = 0;
-  float Slope = 0;
-  float Yint = 0;
-
-  std::vector<float> out(2, 0); // Initialize output
-
-  for(int i = 0; i < N; i++){ // Loop through points
-
-    SumX += x[i];
-    SumY += y[i];
-    SumX2 += x[i] * x[i]; // Sum of the squares of x values
-    SumXY += x[i] * y[i]; // Sum of product of x and y
-  }
-
-  Xmean = SumX / N;
-  Ymean = SumY / N;
-
-  Slope = (SumXY - SumX * Ymean) / (SumX2 - SumX * Xmean);
-
-  Yint = Ymean - Slope * Xmean;
-
-  out[0] = Slope;
-  out[1] = Yint;
-
-  return(out);
-}
-
-*/
-
-
-// Incorporate missing data
-
-NumericMatrix fitLM(NumericMatrix Mdij, // Return a 2d vector
+NumericMatrix fitLM(NumericMatrix Mdij,
                      arma::cube Fij,
                      int Nloci,
                      int Nind){
 
-  int N = 0; // Number of points
-  float x = 0;
-  float y = 0;
-  float SumX = 0;
-  float SumY = 0;
-  float SumX2 = 0;
-  float SumXY = 0;
-  float Xmean = 0;
-  float Ymean = 0;
-  float Slope = 0;
-  float Yint = 0;
-
   NumericMatrix out(Nloci, 2); // Initialize output
 
   // Initialize output array
-  for(int locus = 0; locus < (Nloci + 1); locus++){
+  for(int locus = 0; locus < Nloci; locus++){
     out(locus, 0) = 0;
-    out(locus, 0) = 1;
+    out(locus, 1) = 0;
   }
 
 
   for(int locus = 0; locus < Nloci; locus++){ // Loop through loci
 
+    // Need to re-initialize variables after each locus loop or values will carry over,
+    // causing a weird bug where subsequent loci have lower and lower slopes and Sp values
+    int N = 0; // Number of points
+    float x = 0;
+    float y = 0;
+    float SumX = 0;
+    float SumY = 0;
+    float SumX2 = 0;
+    float SumXY = 0;
+    float Xmean = 0;
+    float Ymean = 0;
+    float Slope = 0;
+    float Yint = 0;
+
     for(int i = 0; i < (Nind - 1) ; i++) for(int j = i+1; j <= (Nind - 1); j++){ // Loop through pairwise comparisions of individuals
 
-      x = Mdij(i, j);
-      y = Fij(i, j, locus);
+      x = Mdij(i, j); // Find pairwise distance
+      x = log(x + 0.000000001); // Take log of distance, add small amount if distance is 0
+      y = Fij(i, j, locus); // Find pairwise Fij
+
+     // Rcout<< "Pairirwise Fij:" << y << ":: Distance:"<< x << "\n";
+
+     // Skip if data is missing - Fij == -999
+     if(y == -999) continue;
 
       SumX += x;
       SumY += y;
@@ -696,6 +723,8 @@ NumericMatrix fitLM(NumericMatrix Mdij, // Return a 2d vector
 
     Xmean = SumX / N;
     Ymean = SumY / N;
+
+   //Rcout << "Printing N in fitLM function: " << N << "\n";
 
     Slope = (SumXY - SumX * Ymean) / (SumX2 - SumX * Xmean);
 

@@ -126,7 +126,7 @@ summary.sgsObj <- function(x){
     cat("Locus: ", loci_names[xz], " is missing ", missingpercentper, "% of locus data \n")
     xz= xz+1
   }
-  summary(out)
+  
 }
 
 
