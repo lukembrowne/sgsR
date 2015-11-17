@@ -199,7 +199,7 @@ summary.sgsObj <- function(x){
   for(col in seq(1, x$Nloci * x$ploidy, x$ploidy)){
     missingsumper= sum(x$gen_data_int[,col]== -999)+sum(x$gen_data_int[,col+1]== -999)
     missingpercentper= (missingsumper/(nrow(x$gen_data_int))*100)
-    cat("Locus: ", loci_names[xz], " is missing ", missingpercentper, "% of locus data \n")
+    cat("Locus: ", x$loci_names[xz], " is missing ", missingpercentper, "% of locus data \n")
     xz= xz+1
   }
   
@@ -403,10 +403,51 @@ readSpagedi <- function(path_to_spagedi_file, missing_val = "-999"){
    return(out)
 }
 
-########
-##This function reads in a Genepop text input file and converts it to an sgsObj
-##File must be in correct Genepop format
-##Currently only works with ploidy of 2, as well as having individual id in first column
+#################
+##### Read Genepop input file and convert to sgsObj
+###########
+#' Read Genepop input from file and convert to  sgsObj object
+#' 
+#'
+#' This function reads a Genepop formatted text file and converts it to an sgsObj.
+#'
+#' @param path_to_genefile A file path pointing to Genepop input file. Must point to a text file in following format in Genepop manual (see details below).
+#' @param missing_vals Value indidicating missing data. Default is -999
+#'
+#' @return An object of the class sgsObj, which is used for futher sgs analyses.
+#' @export
+#'
+#'@section Details:
+#'
+#'Genepop is a popular program for calculating various tests on genetic data \href{http://genepop.curtin.edu.au/}{here}.
+#'
+#'Data format follows that found at \href{http://genepop.curtin.edu.au/help_input.html#Input}{here}.
+#'
+#'Generally, the first line represents information about data or data title.
+#'
+#'The second line begins the names of the first locus. Each following locus is given its own line. 
+#'
+#'An alternative formatting separates loci by commas, however this function does not work with this style.
+#'
+#'Each line of data MUST contain an identification, which is not required for general Genepop files.
+#'
+#'Each individual is given its own line, with loci data following identification. 
+#'
+#'Different populations are separated by some form of POP. 
+#'
+#'\emph{Note:} This function as been tested only for diploid genetic data.
+#'
+#'
+#' @examples
+#'## Read in example data provided with package
+#' path_to_example_data <- system.file("extdata", "example_genepop.txt", package = "sgsR")
+#'
+#'## Use readGenepop to read and convert data to sgsObj
+#' dat <- readGenepop(path_to_example_data, missing_vals = "0")
+#'
+#' dat
+#'
+#'
 
 readGenepop <- function(path_to_genefile, missing_vals= "-999"){
   lines <- readLines(path_to_genefile) #Reads in file, stores in lines
