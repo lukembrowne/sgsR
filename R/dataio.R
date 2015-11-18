@@ -529,7 +529,7 @@ readGenepop <- function(path_to_genefile, missing_vals= "-999"){
 ## Input is a matrix containing summary information of distance intervals
 checkDIs <- function(di){
 
-
+  cat("----------------------------\n")
   # Check that number of pairs > 100
   if(any(di["Number of pairs", ] < 100)){
     cat("Caution - Interval(s):", colnames(di)[which(di["Number of pairs", ] < 100)], "have fewer than 100 pairwise comparisons. \n")
@@ -542,7 +542,7 @@ checkDIs <- function(di){
 
   # Check that CV of participation is < 1
   if(any(di["CV participation", ] > 1)){
-    cat("Caution - Interval(s):", colnames(di)[which(di["CV participation", ] > 1.0)], "have a CV of participation > 1. \n")
+    cat("Caution - Interval(s):", colnames(di)[which(di["CV participation", ] > 1.0)], "have a CV of participation > 1. \n\n")
   }
 
 }

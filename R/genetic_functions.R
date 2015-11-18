@@ -53,10 +53,28 @@ sgs <- function(sgsObj,
       ## Add a new max distance interval if last interval isn't already large enough
       if(max(Mdij) > max(distance_intervals)){
         distance_intervals <- c(distance_intervals, max(Mdij) * 1.001)
+        cat("----------------------------\n")
         cat("Adding an aditional distance interval --", max(Mdij) * 1.001,
-            "-- to encompass all pairwise distances.. \n")
+            "-- to encompass all pairwise distances.. \n\n")
       }
 
+      ## Make sure that first distance interval include all pairs of neighbors. As suggested by
+      ## Vekemans and Hardy 2004 for calculating Sp statistics
+
+        # Make distance matrix symmetric
+        dist_mat <- Mdij + t(Mdij)
+        diag(dist_mat) <- NA # Set diagonal to NA
+
+        nn_dist <- apply(dist_mat, 1, min, na.rm = TRUE)
+
+        if(any(nn_dist > distance_intervals[1])){
+          cat("----------------------------\n")
+          cat("Caution - first distance interval does not include all pairs of neighbors, as suggested by Vekemans and Hardy 2004 for calculating Sp statistic. \n")
+          cat("First distance interval would have to be at least:", max(nn_dist), "to include all pairs of neighbors. \n\n")
+        }
+
+
+       ### Find distance intervals
       Mcij = findDIs(Mdij, distance_intervals, sgsObj$Nind) # C++ func
 
     # Calculate summary of distance intervals

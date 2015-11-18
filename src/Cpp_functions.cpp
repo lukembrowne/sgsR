@@ -216,9 +216,9 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
   for(int perm = 0; perm < (Nperm + 1); perm++){ // Loop through observed (perm = 0) and then total number of permutations
 
     // Print status update on how far along we are in the permutations..
-   // if(perm % 100 == 0 ){
+    if(perm % 50 == 0 ){
       Rcpp::Rcout << "Working on permutation: " << perm << "... \n";
-  //  }
+    }
 
       // Randomizing spatial locations among individuals
       if(perm > 0){ // Skip if it's the first permutation and use observed Mdij and Mcij
