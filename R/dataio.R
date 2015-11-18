@@ -141,7 +141,6 @@ createSgsObj <- function(sample_ids,
   }
 
   ## Add column names to genotype data
-
   colnames(df$gen_data)<- colnames(genotype_data)
   colnames(df$gen_data_int) <- colnames(genotype_data)
 
@@ -166,24 +165,9 @@ createSgsObj <- function(sample_ids,
         df$Nloci = df$Nloci - length(rem_locus)
   }
 
-  #Calculates missing % of data for all loci
-  missingsum= sum(df$gen_data_int== -999)
-  missingpercent= (missingsum / ((ncol(df$gen_data_int))*nrow(df$gen_data_int)))*100
-  cat("This data is missing ", missingpercent ,"% of loci data \n")
-  
-  
-  #Calculates missing % of data per locus
-  xy=1
-  for(col in seq(1, df$Nloci * df$ploidy, df$ploidy)){
-    missingsumper= sum(df$gen_data_int[,col]== -999)+sum(df$gen_data_int[,col+1]== -999)
-    missingpercentper= (missingsumper/(nrow(df$gen_data_int))*100)
-    cat("Locus: ", loci_names[xy], " is missing ", missingpercentper, "% of locus data \n")
-    xy= xy+1
-  }
-  
-
   names(df$Nallele) = df$loci_names
 
+  summary(df)
   return(df)
 
 }
@@ -199,10 +183,10 @@ summary.sgsObj <- function(x){
   for(col in seq(1, x$Nloci * x$ploidy, x$ploidy)){
     missingsumper= sum(x$gen_data_int[,col]== -999)+sum(x$gen_data_int[,col+1]== -999)
     missingpercentper= (missingsumper/(nrow(x$gen_data_int))*100)
-    cat("Locus: ", x$loci_names[xz], " is missing ", missingpercentper, "% of locus data \n")
+    cat("Locus:", x$loci_names[xz], "is missing ", missingpercentper, "% data \n")
     xz= xz+1
   }
-  
+
 }
 
 
@@ -407,7 +391,7 @@ readSpagedi <- function(path_to_spagedi_file, missing_val = "-999"){
 ##### Read Genepop input file and convert to sgsObj
 ###########
 #' Read Genepop input from file and convert to  sgsObj object
-#' 
+#'
 #'
 #' This function reads a Genepop formatted text file and converts it to an sgsObj.
 #'
@@ -425,15 +409,15 @@ readSpagedi <- function(path_to_spagedi_file, missing_val = "-999"){
 #'
 #'Generally, the first line represents information about data or data title.
 #'
-#'The second line begins the names of the first locus. Each following locus is given its own line. 
+#'The second line begins the names of the first locus. Each following locus is given its own line.
 #'
 #'An alternative formatting separates loci by commas, however this function does not work with this style.
 #'
 #'Each line of data MUST contain an identification, which is not required for general Genepop files.
 #'
-#'Each individual is given its own line, with loci data following identification. 
+#'Each individual is given its own line, with loci data following identification.
 #'
-#'Different populations are separated by some form of POP. 
+#'Different populations are separated by some form of POP.
 #'
 #'\emph{Note:} This function as been tested only for diploid genetic data.
 #'
@@ -534,6 +518,35 @@ readGenepop <- function(path_to_genefile, missing_vals= "-999"){
   return(out)
 
   }
+
+
+
+
+
+##########
+### Check to make sure distance intervals follow rules of thumb set in Spagedi manual
+##########
+## Input is a matrix containing summary information of distance intervals
+checkDIs <- function(di){
+
+
+  # Check that number of pairs > 100
+  if(any(di["Number of pairs", ] < 100)){
+    cat("Caution - Interval(s):", colnames(di)[which(di["Number of pairs", ] < 100)], "have fewer than 100 pairwise comparisons. \n")
+  }
+
+  # Check that participation is > 50%
+  if(any(di["% participation", ] < 0.5)){
+    cat("Caution - Interval(s):", colnames(di)[which(di["% participation", ] < 0.5)], "have fewer than 50% participation. \n")
+  }
+
+  # Check that CV of participation is < 1
+  if(any(di["CV participation", ] > 1)){
+    cat("Caution - Interval(s):", colnames(di)[which(di["CV participation", ] > 1.0)], "have a CV of participation > 1. \n")
+  }
+
+}
+
 
 
 

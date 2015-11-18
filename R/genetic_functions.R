@@ -8,6 +8,8 @@
 # It performs several steps along the way (finding distance intervals, calculating SGS,
 # conducting permutation tests). Calls several C++ functions to speed up the process.
 
+### Make it clear what checkDi's is looking for and how to interpret the cautionary values.
+
 # Returns an sgsOut object that holds summary information about the results of the analysis
 
 #' Title
@@ -60,12 +62,17 @@ sgs <- function(sgsObj,
     # Calculate summary of distance intervals
       DIsummary = summarizeDIs(Mdij, Mcij, distance_intervals, Nind = sgsObj$Nind) # C++ func
       rownames(DIsummary) <- c("Distance class", "Max distance", "Average distance",
-                               "Number of pairs")
+                               "Number of pairs", "% participation", "CV participation")
 
-      sgsOut$di <- DIsummary ## Save summary information about distance intervals
+      sgsOut$di <- round(DIsummary, 2) ## Save summary information about distance intervals
 
       ## Add column names to di output
       colnames(sgsOut$di) <- paste("D", 1:length(distance_intervals), sep = "")
+
+      ## Check to make sure DIs follow rules of thumbs in Spagedi manual
+      checkDIs(sgsOut$di)
+
+
 
   #####
   ## REFERENCE ALLELE FREQUENCY

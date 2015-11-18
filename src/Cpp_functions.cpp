@@ -1,6 +1,7 @@
 #include <RcppArmadillo.h>
 using namespace Rcpp;
 //[[Rcpp::depends(RcppArmadillo)]]
+//
 
 // Declare functions
 std::vector<float> calcFijPairwiseCpp(List ref_gen,
@@ -610,8 +611,6 @@ NumericVector findEqualDIs(NumericMatrix Mdij,
 // ***************************
 // ***************************
 
-// Add CV and & participation information
-
 // [[Rcpp::export]]
 NumericMatrix summarizeDIs(NumericMatrix Mdij,
                            NumericMatrix Mcij,
@@ -620,21 +619,57 @@ NumericMatrix summarizeDIs(NumericMatrix Mdij,
 
   int ndis = distance_intervals.size();
   int npairs[ndis];
+  // Perpartic counts each individual once, cvpartic sums total number of times individual is represented
+  float perpartic[ndis]; // Percentage participation per distance interval
+  float cvpartic[ndis]; // Coefficient of variation per distance interval
+  NumericMatrix cvpartic_by_di(ndis, Nind); // Matrix to store participation by distance interval by individual
   float tot[ndis]; // Total distance
-  NumericMatrix summary(4, ndis); // nrows determined by how many stats to summarize
+  int partic_flags[ndis][Nind]; // Flags used to count whether we've already seen that individual for % particpation calculations
+  NumericMatrix summary(6, ndis); // nrows determined by how many stats to summarize
 
-  // Initalize pairs and total variables
+  // Initalize variables to 0
   for(int i = 0; i < ndis; i++){
     npairs[i] = 0;
     tot[i] = 0;
+    perpartic[i] = 0;
+    cvpartic[i] = 0;
+      for(int j = 0; j < Nind; j++){
+        partic_flags[i][j] = 0;
+        cvpartic_by_di(i, j) = 0;
+      }
   }
+
 
   for(int i = 0; i < (Nind - 1); i++) for(int j = i+1; j <= (Nind - 1); j++){ // Loops through all pairs of individuals
 
     int di = Mcij(i, j); // Distance interval for this pair
     tot[di] += Mdij(i, j); // Add distance to total distance
     npairs[di] += 1;      // Increment number of pairs by one
+
+    cvpartic_by_di(di, i) += 1; // Increment counts of including this individual for CV of participation
+    cvpartic_by_di(di, j) += 1;
+
+    // If this indidividual hasn't been analyzed yet for this distance interval...
+    if(partic_flags[di][i] == 0){
+      perpartic[di] += 1;
+      partic_flags[di][i] = 1;
+    }
+
+    if(partic_flags[di][j] == 0){
+      perpartic[di] += 1;
+      partic_flags[di][j] = 1;
+    }
+
   } // End loop through pairs
+
+
+  // Calculate coefficient of variation for each distance interval: sd / mean
+  for(int i = 0; i < ndis; i++){
+    NumericVector row = cvpartic_by_di(i, _ );
+    float mean = sum(row) / Nind;
+    float sd_temp = sd(row);
+    cvpartic[i] = sd_temp / mean;
+  }
 
   /*
   Fill in summary information
@@ -643,6 +678,8 @@ NumericMatrix summarizeDIs(NumericMatrix Mdij,
   2. Max distance in distance interval
   3. Average distance in distance itnerval
   4. Number of pairs
+  5. % partic - the proportion (%) of all individuals / populations represented at least once in the interval
+  6. CV partic - the coefficient of variation of the number of times each individual / population is represented
   */
 
   for(int i = 0; i < ndis; i++){
@@ -651,6 +688,8 @@ NumericMatrix summarizeDIs(NumericMatrix Mdij,
     summary(1, i) = distance_intervals[i]; // Max distance in distance interval
     summary(2, i) = tot[i] / npairs[i]; // Average distance
     summary(3, i) = npairs[i]; // Number of pairs
+    summary(4, i) = perpartic[i] / Nind; // Percentage participation
+    summary(5, i) = cvpartic[i]; // CV of participation
   }
 
   return(summary);
