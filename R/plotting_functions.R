@@ -6,9 +6,24 @@
 # This function plots the amount of spatial autocorrelation in relatedness among the samples,
 # which is a typical graph made from these type of analyses
 
-plot.sgsOut <- function(sgsOut, overlay = FALSE, color = "black",
+#' Title
+#'
+#' @param x
+#' @param overlay
+#' @param color
+#' @param max_distance
+#' @param ...
+#'
+#' @return
+#' 1
+#' @export
+#'
+#' @examples
+#' 1
+plot.sgsOut <- function(x, overlay = FALSE, color = "black",
                     max_distance = NULL, ...){
 
+  sgsOut = x
   # Check to make sure input is the right class
   if(!is(sgsOut, "sgsOut")){
     stop("Data must be of class sgsOut.. \n")

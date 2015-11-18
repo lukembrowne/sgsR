@@ -1,3 +1,9 @@
+#' @useDynLib sgsR
+#' @importFrom Rcpp sourceCpp
+NULL
+
+
+
 #################
 ##### Building basic data structure - sgsObj
 ###########
@@ -5,7 +11,7 @@
 #' Create basic data structure for sgs analysis
 #'
 #'This function creates the basic data structure that will hold all the information necessary for sgs analyses - an object of the class sgsObj. It includes genotype data, spatial data, information about ploidy, groups, names of loci, etc.
-#' sgsObjs can be created from scratch through the function below, or by reading in text input files created by other programs using the \code{\link{readSpagedi}} and \code{\link{readGenepop }} functions
+#' sgsObjs can be created from scratch through the function below, or by reading in text input files created by other programs using the \code{\link{readSpagedi}} and \code{\link{readGenepop}} functions
 #'
 #' @param sample_ids A vector of numbers or names giving individual IDs of samples.
 #' @param genotype_data A matrix or dataframe with genetic data. See details for more information.
@@ -34,6 +40,9 @@
 #' Returns an object of the class sgsObj.
 #' @export
 #'
+#' @seealso
+#' \code{\link{summary.sgsObj}}
+#'
 #' @examples
 #'
 #' ## Simulate genetic data
@@ -60,7 +69,7 @@
 #'                      ploidy = 2,
 #'                      x_coords = dat$x,
 #'                      y_coords = dat$y)
-#'attributes(sgsObj)
+#'summary(sgsObj)
 createSgsObj <- function(sample_ids,
                          genotype_data,
                          x_coords,
@@ -172,18 +181,68 @@ createSgsObj <- function(sample_ids,
 
 }
 
-#Summary method for sgsObj class
-summary.sgsObj <- function(x){
-  cat("Number of individuals: ", x$Nind, "\n")
-  cat("Number of categories: ", length(unique(x$groups)), "\n")
-  cat("Number of loci: ",x$Nloci, "\n" )
-  cat("Number of alleles per locus: ", x$Nallele, "\n")
-  cat("Number of gene copies per loci: ",x$Ngenecopies ,"\n")
+
+#
+#' Prints summary of sgsObj data structure
+#'
+#' @param object An sgsObj to be summarized
+#' @param ... arguments passed to summary
+#'
+#' @return
+#'
+#' A printed summary of..
+#' \itemize{
+#' \item The number of individuals
+#' \item The number of categories (analyses based on categories not yet implemented)
+#' \item Number of loci
+#' \item Number of alleles per locus
+#' \item Number of gene copies per locus
+#' \item The percentage of missing data per locus
+#' }
+#'
+#' @export
+#'
+#' @seealso
+#' \code{\link{createSgsObj}} for how to create a sgsObj
+#'
+#' @examples
+#'
+#' ## Simulate genetic data
+#' Nind = 100 # Number of individuals
+#' Nloci = 5 # Number of loci
+#' Nallele = 10 # Number of alleles per loci
+#'
+#' ## Set up data frame and generate random spatial locations
+#' dat <- data.frame(id = 0:(Nind - 1))
+#' dat$x = runif(Nind, 0, 100)
+#' dat$y = runif(Nind, 0, 100)
+#'
+#' ## Simulate Random genetic data and assign loci names
+#' for (loci in 1:Nloci) {
+#'  loci_name_a = paste("Loc", loci, "_A", sep = "")
+#'  loci_name_b = paste("Loc", loci, "_B", sep = "")
+#'  dat[loci_name_a] <- sample.int(Nallele, Nind, replace = TRUE)
+#'  dat[loci_name_b] <- sample.int(Nallele, Nind, replace = TRUE)
+#'}
+#'
+#' ## Convert to sgsObj
+#' sgsObj = createSgsObj(sample_ids = dat$id,
+#'                      genotype_data = dat[, 4:(Nloci*2 + 3)],
+#'                      ploidy = 2,
+#'                      x_coords = dat$x,
+#'                      y_coords = dat$y)
+#'summary(sgsObj)
+summary.sgsObj <- function(object, ...){
+  cat("Number of individuals: ", object$Nind, "\n")
+  cat("Number of categories: ", length(unique(object$groups)), "\n")
+  cat("Number of loci: ",object$Nloci, "\n" )
+  cat("Number of alleles per locus: ", object$Nallele, "\n")
+  cat("Number of gene copies per loci: ",object$Ngenecopies ,"\n")
   xz=1
-  for(col in seq(1, x$Nloci * x$ploidy, x$ploidy)){
-    missingsumper= sum(x$gen_data_int[,col]== -999)+sum(x$gen_data_int[,col+1]== -999)
-    missingpercentper= (missingsumper/(nrow(x$gen_data_int))*100)
-    cat("Locus:", x$loci_names[xz], "is missing ", missingpercentper, "% data \n")
+  for(col in seq(1, object$Nloci * object$ploidy, object$ploidy)){
+    missingsumper= sum(object$gen_data_int[,col]== -999)+sum(object$gen_data_int[,col+1]== -999)
+    missingpercentper= (missingsumper/(nrow(object$gen_data_int))*100)
+    cat("Locus:", object$loci_names[xz], "is missing ", missingpercentper, "% data \n")
     xz= xz+1
   }
 
@@ -193,7 +252,7 @@ summary.sgsObj <- function(x){
 
 
 #################
-##### Read spagedi input file and convert to sgsObj
+##### Read spagedi input file and convert to object
 ###########
 
 #' Read SPAGeDi input from file and convert to sgsObj object

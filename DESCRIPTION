@@ -9,9 +9,12 @@ Maintainer: Luke Browne <lukembrowne@gmail.com>
 Description: This package provides basic functions for spatial genetic structure analyses in R.
 License: GPL (>= 2)
 LazyData: TRUE
-Imports:
-    Rcpp,
-    RcppArmadillo
-LinkingTo:
+Imports: 
+    Rcpp (>= 0.12.1)
+LinkingTo: 
     Rcpp, RcppArmadillo
-Suggests: testthat
+Suggests: testthat,
+    knitr,
+    rmarkdown
+BugReports: https://github.com/lukembrowne/sgsR/issues
+VignetteBuilder: knitr

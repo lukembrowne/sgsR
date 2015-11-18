@@ -29,7 +29,7 @@ Returns an object of the class sgsObj.
 }
 \description{
 This function creates the basic data structure that will hold all the information necessary for sgs analyses - an object of the class sgsObj. It includes genotype data, spatial data, information about ploidy, groups, names of loci, etc.
-sgsObjs can be created from scratch through the function below, or by reading in text input files created by other programs using the \code{\link{readSpagedi}} and \code{\link{readGenepop }} functions
+sgsObjs can be created from scratch through the function below, or by reading in text input files created by other programs using the \code{\link{readSpagedi}} and \code{\link{readGenepop}} functions
 }
 \section{Details}{
 
@@ -71,6 +71,9 @@ sgsObj = createSgsObj(sample_ids = dat$id,
                      ploidy = 2,
                      x_coords = dat$x,
                      y_coords = dat$y)
-attributes(sgsObj)
+summary(sgsObj)
+}
+\seealso{
+\code{\link{summary.sgsObj}}
 }
 
