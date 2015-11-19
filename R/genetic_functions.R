@@ -87,7 +87,8 @@
 #'
 sgs <- function(sgsObj,
                 distance_intervals,
-                nperm = 999){
+                nperm = 999,
+                dist_mat = NULL){
 
   # Check to make sure data is sgs object
   if(!is(sgsObj, "sgsObj")){
@@ -102,9 +103,13 @@ sgs <- function(sgsObj,
   #####
   ## DISTANCE INTERVALS
   ####
-
-    ## Calculate distance intervals
+  if(!is.null(dist_mat)){
+    cat("Using user-supplied distance matrix.., \n")
+    Mdij = dist_mat
+  } else {
+    ## Calculate pairwise distances
       Mdij = calcPairwiseDist(sgsObj$x, sgsObj$y, sgsObj$Nind ) ## Distance matrix - C++ func
+  }
 
       # If equalized distance interval option is chosen (by setting option to negative)
       # Find new distance intervals with approximately equal number of pairwise comparisons
