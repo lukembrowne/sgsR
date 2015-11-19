@@ -19,6 +19,7 @@
 #' @param sgsObj A data structure created by \code{\link{createSgsObj}}
 #' @param distance_intervals either a vector with upper limits of distance intervals, or a negative integer with number of distance intervals to generate with approximately equal pairwise comparisons
 #' @param nperm Number of permutations of spatial locations among individuals to perform
+#' @param dist_mat A user-supplied distance matrix (Optional)
 #'
 #' @return
 #'
@@ -104,8 +105,24 @@ sgs <- function(sgsObj,
   ## DISTANCE INTERVALS
   ####
   if(!is.null(dist_mat)){
-    cat("Using user-supplied distance matrix.., \n")
+    cat("Using user-supplied distance matrix... \n")
+
+    # Error checking
+
+    if(!is.matrix(dist_mat)){
+     stop("User-supplied distance matrix must be a matrix...\n")
+    }
+
+    if(any(dist_mat < 0)){
+      stop("User-supplied distance matrix must contain only positive values... \n")
+    }
+
+    if(dim(dist_mat)[1] != sgsObj$Nind | dim(dist_mat)[2] != sgsObj$Nind){
+      stop("The number of rows and columns of user-supplied distance matrix must equal number of individuals... \n")
+    }
+
     Mdij = dist_mat
+
   } else {
     ## Calculate pairwise distances
       Mdij = calcPairwiseDist(sgsObj$x, sgsObj$y, sgsObj$Nind ) ## Distance matrix - C++ func
