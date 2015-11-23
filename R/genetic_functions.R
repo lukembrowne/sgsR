@@ -55,7 +55,7 @@
 #'
 #'
 #' @seealso
-#' \code{\link{createSgsObj}}, \code{\link{plot.sgsOut}}
+#' \code{\link{createSgsObj}}, \code{\link{summary.sgsOut}}, \code{\link{plot.sgsOut}}
 #'
 #' @examples
 #'

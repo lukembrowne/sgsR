@@ -2,16 +2,13 @@
 #' @importFrom Rcpp sourceCpp
 NULL
 
-
-
 #################
 ##### Building basic data structure - sgsObj
 ###########
 
 #' Create basic data structure for sgs analysis
 #'
-#'This function creates the basic data structure that will hold all the information necessary for sgs analyses - an object of the class sgsObj. It includes genotype data, spatial data, information about ploidy, groups, names of loci, etc.
-#' sgsObjs can be created from scratch through the function below, or by reading in text input files created by other programs using the \code{\link{readSpagedi}} and \code{\link{readGenepop}} functions
+#'This function creates the basic data structure that will hold all the information necessary for sgs analyses - an object of the class sgsObj. It includes genotype data, spatial data, information about ploidy, groups, names of loci, etc. sgsObjs can be created from scratch through the function below, or by reading in text input files created by SPAGeDi using the \code{\link{readSpagedi}} function. Note that loci with only one allele will be removed from the sgsObj, as this would cause issues with sgs analyses.
 #'
 #' @param sample_ids A vector of numbers or names giving individual IDs of samples.
 #' @param genotype_data A matrix or dataframe with genetic data. See details for more information.
@@ -20,13 +17,15 @@ NULL
 #' @param missing_val Numeric or character value indicating value used for missing data. Default is -999.
 #' @param groups An optional vector of  of grouping classfication. \emph{Note:} Analyses on groups have not been implemented yet.
 #' @param ploidy Ploidy level. \emph{Note:} Analyses have only been tested with ploidy = 2.
-#' @param loci_names Optional vector of loci names.
+#' @param loci_names Optional vector of loci names. If no value is supplied, loci names will be assigned from the column names of the genotype data.
 #'
 #'@section Details:
 #'
+#'Loci with only one allele are removed from the sgsObj data structure to prevent problems with sgs analyses.
+#'
 #'\emph{\strong{Genotype data structure}}
 #'
-#'Genotype data should be formatted as a dataframe or matrix with individual samples as rows and loci as columns. Each locus should have two columns (in the case of diploid organisms), and these pairs of columns should be adjacent to each other.
+#'Genotype data should be formatted as a dataframe or matrix with individual samples as rows and loci as columns. Each locus should have two columns (in the case of diploid organisms), and these pairs of columns should be adjacent to each other. Values should be numeric.
 #'
 #'\tabular{rrrrrr}{
 #'  Loc1_A \tab Loc1_B \tab Loc2_A \tab Loc2_B \tab Loc3_A \tab Loc3_B \cr
@@ -41,7 +40,7 @@ NULL
 #' @export
 #'
 #' @seealso
-#' \code{\link{summary.sgsObj}}
+#' \code{\link{summary.sgsObj}}, \code{\link{plot.sgsObj}}
 #'
 #' @examples
 #'
@@ -68,8 +67,12 @@ NULL
 #'                      genotype_data = dat[, 4:(Nloci*2 + 3)],
 #'                      ploidy = 2,
 #'                      x_coords = dat$x,
-#'                      y_coords = dat$y)
+#'                      y_coords = dat$y,
+#'                      missing_val = -999)
+#'
 #'summary(sgsObj)
+#'
+#'plot(sgsObj)
 createSgsObj <- function(sample_ids,
                          genotype_data,
                          x_coords,
@@ -89,10 +92,14 @@ createSgsObj <- function(sample_ids,
   df$groups <- groups ## Groups functionality not currently implemented..
 
   # Set spatial coordinates
+  if(!is.numeric(x_coords) | !is.numeric(y_coords)){
+    stop("x_coords and y_coords need to be formatted as a numeric vector...\n")
+  }
   df$x <- x_coords
   df$y <- y_coords
 
   # Set various attributes
+  if(!is.numeric(ploidy)) stop("Ploidy argument must be numeric...\n")
   df$ploidy = ploidy #  ploidy
   df$Nind = length(sample_ids) # Set number of individuals
   df$Nloci = ncol(genotype_data) / ploidy # Set number of loci
@@ -100,7 +107,12 @@ createSgsObj <- function(sample_ids,
   # Set genetic data and loci names
   df$gen_data <- genotype_data
   if(is.null(loci_names)) df$loci_names <- colnames(genotype_data)[seq(1, df$Nloci*2, 2)]
-  if(!is.null(loci_names)) df$loci_names <- loci_names
+  if(!is.null(loci_names)){
+    if(length(loci_names) != ncol(genotype_data)/ploidy){
+      stop("Supplied loci_names are of different length than expected...\n")
+    }
+    df$loci_names <- loci_names
+  }
 
     # Format genetic data so that uses integers instead of raw numbers,
     # used later for indexing in C++
@@ -154,7 +166,6 @@ createSgsObj <- function(sample_ids,
   colnames(df$gen_data_int) <- colnames(genotype_data)
 
   ## Look for loci that only have one allele and remove from dataframe
-
   rem_locus <- which(df$Nallele == 1)
 
   if(length(rem_locus) > 0 ){
@@ -249,8 +260,6 @@ summary.sgsObj <- function(object, ...){
 }
 
 
-
-
 #################
 ##### Read spagedi input file and convert to object
 ###########
@@ -287,6 +296,7 @@ summary.sgsObj <- function(object, ...){
 #'
 #'
 #' @examples
+#' \dontrun{
 #'## Read in example data provided with package
 #' path_to_example_data <- system.file("extdata", "obataua_spagedi.txt", package = "sgsR")
 #'
@@ -294,6 +304,7 @@ summary.sgsObj <- function(object, ...){
 #' dat <- readSpagedi(path_to_example_data, missing_val = "0")
 #'
 #' dat
+#' }
 #'
 #'
 readSpagedi <- function(path_to_spagedi_file, missing_val = "-999"){
@@ -445,139 +456,6 @@ readSpagedi <- function(path_to_spagedi_file, missing_val = "-999"){
     cat("Successfully read SPAGeDi input file!\n")
    return(out)
 }
-
-#################
-##### Read Genepop input file and convert to sgsObj
-###########
-#' Read Genepop input from file and convert to  sgsObj object
-#'
-#'
-#' This function reads a Genepop formatted text file and converts it to an sgsObj.
-#'
-#' @param path_to_genefile A file path pointing to Genepop input file. Must point to a text file in following format in Genepop manual (see details below).
-#' @param missing_vals Value indidicating missing data. Default is -999
-#'
-#' @return An object of the class sgsObj, which is used for futher sgs analyses.
-#' @export
-#'
-#'@section Details:
-#'
-#'Genepop is a popular program for calculating various tests on genetic data \href{http://genepop.curtin.edu.au/}{here}.
-#'
-#'Data format follows that found at \href{http://genepop.curtin.edu.au/help_input.html#Input}{here}.
-#'
-#'Generally, the first line represents information about data or data title.
-#'
-#'The second line begins the names of the first locus. Each following locus is given its own line.
-#'
-#'An alternative formatting separates loci by commas, however this function does not work with this style.
-#'
-#'Each line of data MUST contain an identification, which is not required for general Genepop files.
-#'
-#'Each individual is given its own line, with loci data following identification.
-#'
-#'Different populations are separated by some form of POP.
-#'
-#'\emph{Note:} This function as been tested only for diploid genetic data.
-#'
-#'
-#' @examples
-#'## Read in example data provided with package
-#' path_to_example_data <- system.file("extdata", "example_genepop.txt", package = "sgsR")
-#'
-#'## Use readGenepop to read and convert data to sgsObj
-#' dat <- readGenepop(path_to_example_data, missing_vals = "0")
-#'
-#' dat
-#'
-#'
-
-readGenepop <- function(path_to_genefile, missing_vals= "-999"){
-  lines <- readLines(path_to_genefile) #Reads in file, stores in lines
-  lines <- lines[-1] #Deletes title row
-  Ncoords= 0 #No spatial data included in Genepop file format
-  Ncats = 1 #Default 1 category
-  Ploidy= 2 #Assuming all individuals have ploidy of 2
-  Loci= 0
-
-  #Calculates loci number
-  Break= "Pop|pop|POP"
-  for(x in 1:length(lines)){
-    if (grepl(lines[x], Break) ){
-      Loci= Loci +1
-    }
-  }
-
-  lines <- lines[-grep('^P', lines)] #removes pop separators
-  dataz = strsplit(lines[(Loci+1):length(lines)], split = "\\s+") #Need variable for 4, number of loci+1
-  Nind= length(dataz) #The total number of individuals in data set
-
-  loci_names <- '' #Initializes Loci names
-  catz<- '' #Initializes Categories
-
-
-
-  genotype_data = data.frame(rep(NA, Nind)) ## Initialize genotype data frame
-
-  #Fill in genotype data
-    if(Ncats > 0  & Ncoords == 0){
-      cat("No spatial information detected...\n")
-      loci_names = lines[1:Loci]
-      ids = sapply(dataz, "[[", 1) ## First column is id information
-      catz = sapply(dataz, "[[", 2) ## Category labels
-      ## Fill in genotype data
-      col2 = 1
-      for(x in 1:(length(dataz[[1]]))){
-        genotype_data[, col2] = sapply(dataz, "[[", x)
-        col2 = col2 + 1
-      }
-    }
-
-  #Removes Individual numbers and Category
-  genotype_data<- genotype_data[,-2]
-  genotype_data<- genotype_data[,-1]
-
-  #Number of digits per allel
-  Ndigits= (nchar(genotype_data[1,1]))/2
-
-  ## Split genotype data into separate columns for each allele
-  split_gen_dataz <- data.frame(rep(NA, Nind))
-  for(col in 1:ncol(genotype_data)){
-    split_gen_dataz <- cbind(split_gen_dataz,
-                            split_alleles(genotype_data[, col], Ndigits, Ploidy))
-  }
-
-  # Remove first column of split gen_data (All Nas..)
-  split_gen_dataz <- split_gen_dataz[, -1]
-
-
-
-  ## Convert to numeric
-  for(col in 1:ncol(split_gen_dataz)){
-    split_gen_dataz[, col] <- as.numeric(split_gen_dataz[, col])
-  }
-
-
-
-  ## Replace with -999 for missing values
-  missing_vals = as.character(missing_vals) ## In case it's inputted as a numeric
-  split_gen_dataz[split_gen_dataz == missing_vals] <- -999
-
-
-  ### Assemble sgsObj
-  out <- createSgsObj(sample_ids = ids,
-                      groups = catz,
-                      genotype_data = split_gen_dataz,
-                      ploidy = Ploidy,
-                      loci_names = loci_names,
-                      x_coords = NULL,
-                      y_coords = NULL)
-
-
-  return(out)
-
-  }
-
 
 
 

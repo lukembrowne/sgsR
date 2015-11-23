@@ -22,21 +22,22 @@ createSgsObj(sample_ids, genotype_data, x_coords, y_coords,
 
 \item{ploidy}{Ploidy level. \emph{Note:} Analyses have only been tested with ploidy = 2.}
 
-\item{loci_names}{Optional vector of loci names.}
+\item{loci_names}{Optional vector of loci names. If no value is supplied, loci names will be assigned from the column names of the genotype data.}
 }
 \value{
 Returns an object of the class sgsObj.
 }
 \description{
-This function creates the basic data structure that will hold all the information necessary for sgs analyses - an object of the class sgsObj. It includes genotype data, spatial data, information about ploidy, groups, names of loci, etc.
-sgsObjs can be created from scratch through the function below, or by reading in text input files created by other programs using the \code{\link{readSpagedi}} and \code{\link{readGenepop}} functions
+This function creates the basic data structure that will hold all the information necessary for sgs analyses - an object of the class sgsObj. It includes genotype data, spatial data, information about ploidy, groups, names of loci, etc. sgsObjs can be created from scratch through the function below, or by reading in text input files created by SPAGeDi using the \code{\link{readSpagedi}} function. Note that loci with only one allele will be removed from the sgsObj, as this would cause issues with sgs analyses.
 }
 \section{Details}{
 
 
+Loci with only one allele are removed from the sgsObj data structure to prevent problems with sgs analyses.
+
 \emph{\strong{Genotype data structure}}
 
-Genotype data should be formatted as a dataframe or matrix with individual samples as rows and loci as columns. Each locus should have two columns (in the case of diploid organisms), and these pairs of columns should be adjacent to each other.
+Genotype data should be formatted as a dataframe or matrix with individual samples as rows and loci as columns. Each locus should have two columns (in the case of diploid organisms), and these pairs of columns should be adjacent to each other. Values should be numeric.
 
 \tabular{rrrrrr}{
  Loc1_A \tab Loc1_B \tab Loc2_A \tab Loc2_B \tab Loc3_A \tab Loc3_B \cr
@@ -70,10 +71,14 @@ sgsObj = createSgsObj(sample_ids = dat$id,
                      genotype_data = dat[, 4:(Nloci*2 + 3)],
                      ploidy = 2,
                      x_coords = dat$x,
-                     y_coords = dat$y)
+                     y_coords = dat$y,
+                     missing_val = -999)
+
 summary(sgsObj)
+
+plot(sgsObj)
 }
 \seealso{
-\code{\link{summary.sgsObj}}
+\code{\link{summary.sgsObj}}, \code{\link{plot.sgsObj}}
 }
 

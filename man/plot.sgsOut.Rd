@@ -2,27 +2,42 @@
 % Please edit documentation in R/plotting_functions.R
 \name{plot.sgsOut}
 \alias{plot.sgsOut}
-\title{Title}
+\title{Plot spatial autocorrelation graph}
 \usage{
-\method{plot}{sgsOut}(x, overlay = FALSE, color = "black",
-  max_distance = NULL, ...)
+\method{plot}{sgsOut}(x, overlay = FALSE, max_distance = NULL,
+  lwd_avg = 2, col_avg = "black", pch = 19, lwd_CI = 1, lty_CI = 4,
+  col_CI = "black", ylab = "Kinship", xlab = "Distance", ...)
 }
 \arguments{
-\item{x}{}
+\item{x}{An sgsOut objects that contains results of an \code{\link{sgs}} analysis}
 
-\item{overlay}{}
+\item{overlay}{If TRUE, overlay plot on current plot.}
 
-\item{color}{}
+\item{max_distance}{Maximum distance to display on x axis. If NULL, defaults to value of largest distance interval}
 
-\item{max_distance}{}
+\item{lwd_avg}{Line width of line connecting kinship estimates in each distance interval}
 
-\item{...}{}
+\item{col_avg}{Color of points and line connecting kinship estimates in each distance interval}
+
+\item{pch}{Point type for average value of kinsihp estimates in each distance interval}
+
+\item{lwd_CI}{Line width of confidence interval lines}
+
+\item{lty_CI}{Line type of confidence interval lines}
+
+\item{col_CI}{Color of confidence interval lines}
+
+\item{ylab}{Y axis label}
+
+\item{xlab}{X axis label}
+
+\item{...}{Arguments to pass to generic plotting functions}
 }
 \value{
-1
+A spatial autocorrelation plot
 }
 \description{
-Title
+Plots a spatial autocorrelation graph with Kinship estimator on y axis and distance on x axis. Each point represents the average kinship estimate within that distance interval. Dashed lines represent 95% confidence intervals for the permuted kinship estimates (if permutations were performed in the \code{\link{sgs}} analysis).
 }
 \examples{
 1

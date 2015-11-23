@@ -4,7 +4,7 @@
 \alias{sgs}
 \title{Run spatial genetic struture analysis}
 \usage{
-sgs(sgsObj, distance_intervals, nperm = 999)
+sgs(sgsObj, distance_intervals, nperm = 999, dist_mat = NULL)
 }
 \arguments{
 \item{sgsObj}{A data structure created by \code{\link{createSgsObj}}}
@@ -12,6 +12,8 @@ sgs(sgsObj, distance_intervals, nperm = 999)
 \item{distance_intervals}{either a vector with upper limits of distance intervals, or a negative integer with number of distance intervals to generate with approximately equal pairwise comparisons}
 
 \item{nperm}{Number of permutations of spatial locations among individuals to perform}
+
+\item{dist_mat}{A user-supplied distance matrix (Optional)}
 }
 \value{
 A list of the class 'sgsOut' that contains the following elements, which can be accessed with the $ operator (see examples):
@@ -74,6 +76,6 @@ sgsObj = createSgsObj(sample_ids = dat$id,
 summary(sgsObj)
 }
 \seealso{
-\code{\link{createSgsObj}}, \code{\link{plot.sgsOut}}
+\code{\link{createSgsObj}}, \code{\link{summary.sgsOut}}, \code{\link{plot.sgsOut}}
 }
 
