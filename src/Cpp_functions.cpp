@@ -298,6 +298,7 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
 
      NumericMatrix out_lm(Nloci, 2);
 
+
       out_lm =     fitLM(Mdij,
                          fij_est_regr,
                          Nloci,
@@ -318,12 +319,13 @@ NumericMatrix calcFijPopCpp(NumericMatrix Mcij,
       lm_results[Nloci][0][perm] = lm_results[Nloci][0][perm] / Nloci;
       lm_results[Nloci][1][perm] = lm_results[Nloci][1][perm] / Nloci;
 
-      if(perm == 0){
-      // function to print output
-      for(int i = 0; i < Nloci; i++){
-       // Rcout << "Slope lm res: " << lm_results[i][0][perm] << " || Int:"<< lm_results[i][1][perm] << "\n";
-      }
-      }
+//       if(perm == 0){
+//         // function to print output
+//         for(int i = 0; i < Nloci; i++){
+//           Rcout << "Slope lm res: " << lm_results[i][0][perm] << " || Int:"<< lm_results[i][1][perm] << "\n";
+//         }
+//       }
+
       // Calculate Sp statistic from lm_results
       // Formula is -b / (1 - F1), where b is slope of the regression of distance on Fij and
       // and F1 is the mean Fij betweeen individuals belonging to the first distance interval that
@@ -730,16 +732,16 @@ NumericMatrix fitLM(NumericMatrix Mdij,
     // Need to re-initialize variables after each locus loop or values will carry over,
     // causing a weird bug where subsequent loci have lower and lower slopes and Sp values
     int N = 0; // Number of points
-    float x = 0;
-    float y = 0;
-    float SumX = 0;
-    float SumY = 0;
-    float SumX2 = 0;
-    float SumXY = 0;
-    float Xmean = 0;
-    float Ymean = 0;
-    float Slope = 0;
-    float Yint = 0;
+    double x = 0;
+    double y = 0;
+    double SumX = 0;
+    double SumY = 0;
+    double SumX2 = 0;
+    double SumXY = 0;
+    double Xmean = 0;
+    double Ymean = 0;
+    double Slope = 0;
+    double Yint = 0;
 
     for(int i = 0; i < (Nind - 1) ; i++) for(int j = i+1; j <= (Nind - 1); j++){ // Loop through pairwise comparisions of individuals
 
@@ -747,7 +749,10 @@ NumericMatrix fitLM(NumericMatrix Mdij,
       x = log(x + 0.000000001); // Take log of distance, add small amount if distance is 0
       y = Fij(i, j, locus); // Find pairwise Fij
 
-     // Rcout<< "Pairirwise Fij:" << y << ":: Distance:"<< x << "\n";
+//       if(locus == 0){
+//         Rcout << "Inds:" << i << "   " << j << "\n";
+//         Rcout<< "Pairwise Fij:" << y << ":: Distance:"<< x << "\n";
+//       }
 
      // Skip if data is missing - Fij == -999
      if(y == -999) continue;
@@ -760,14 +765,20 @@ NumericMatrix fitLM(NumericMatrix Mdij,
       N += 1;
     } // End pairwise individuals loop
 
+
     Xmean = SumX / N;
     Ymean = SumY / N;
+
 
    //Rcout << "Printing N in fitLM function: " << N << "\n";
 
     Slope = (SumXY - SumX * Ymean) / (SumX2 - SumX * Xmean);
 
     Yint = Ymean - Slope * Xmean;
+
+//     if(locus == 0){
+//       Rcout << "Slope: " << Slope << "  | Int:" << Yint << "\n";
+//     }
 
     out(locus, 0) = Slope;
     out(locus, 1) = Yint;
