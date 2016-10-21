@@ -11,7 +11,7 @@ Some key features of sgsR are:
 
 ===============
 
-sgsR is very much still in development, and certainly contains many bugs. If you're interested in contributing, have any comments or suggestions, please get in touch via github or email - <lukembrowne@gmail.com>
+If you're interested in contributing, have any comments or suggestions, please get in touch via github or email - <lukembrowne@gmail.com>
 
 ===============
 
@@ -142,5 +142,4 @@ round(out1$Fijsummary, 3)
 #> Loc10_A   0.002  0.004  0.034
 #> ALL LOCI -0.001 -0.005 -0.005
 ```
-Github?
 =================
