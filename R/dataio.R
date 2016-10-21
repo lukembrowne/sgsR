@@ -250,12 +250,12 @@ summary.sgsObj <- function(object, ...){
   cat("Number of alleles per locus: ", object$Nallele, "\n")
   cat("Number of gene copies per loci: ",object$Ngenecopies ,"\n")
   xz=1
-  for(col in seq(1, object$Nloci * object$ploidy, object$ploidy)){
-    missingsumper= sum(object$gen_data_int[,col]== -999)+sum(object$gen_data_int[,col+1]== -999)
-    missingpercentper= (missingsumper/(nrow(object$gen_data_int))*100)
-    cat("Locus:", object$loci_names[xz], "is missing ", missingpercentper, "% data \n")
-    xz= xz+1
-  }
+#   for(col in seq(1, object$Nloci * object$ploidy, object$ploidy)){
+#     missingsumper= sum(object$gen_data_int[,col]== -999)+sum(object$gen_data_int[,col+1]== -999)
+#     missingpercentper= (missingsumper/(nrow(object$gen_data_int))*100)
+#     cat("Locus:", object$loci_names[xz], "is missing ", missingpercentper, "% data \n")
+#     xz= xz+1
+#   }
 
 }
 
@@ -478,9 +478,11 @@ checkDIs <- function(di){
   }
 
   # Check that CV of participation is < 1
+  try({
   if(any(di["CV participation", ] > 1)){
     cat("Caution - Interval(s):", colnames(di)[which(di["CV participation", ] > 1.0)], "have a CV of participation > 1. \n\n")
   }
+  })
 
 }
 
